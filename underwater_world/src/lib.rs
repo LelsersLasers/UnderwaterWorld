@@ -1,8 +1,4 @@
-use winit::{
-    event::*,
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
-};
+mod consts;
 
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
@@ -25,8 +21,11 @@ pub fn run() {
     set_up_logger();
 
 
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let event_loop = winit::event_loop::EventLoop::new();
+    let window = winit::window::WindowBuilder::new()
+        .with_title("Underwater World")
+        .with_inner_size(winit::dpi::LogicalSize::new(consts::WINDOW_WIDTH, consts::WINDOW_HEIGHT))
+        .build(&event_loop).unwrap();
 
 
     #[cfg(target_arch = "wasm32")]
@@ -49,20 +48,20 @@ pub fn run() {
  
 
     event_loop.run(move |event, _, control_flow| match event {
-        Event::WindowEvent {
+        winit::event::Event::WindowEvent {
             ref event,
             window_id,
         } if window_id == window.id() => match event {
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
+            winit::event::WindowEvent::CloseRequested
+            | winit::event::WindowEvent::KeyboardInput {
                 input:
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::Escape),
+                winit::event::KeyboardInput {
+                        state: winit::event::ElementState::Pressed,
+                        virtual_keycode: Some(winit::event::VirtualKeyCode::Escape),
                         ..
                     },
                 ..
-            } => *control_flow = ControlFlow::Exit,
+            } => *control_flow = winit::event_loop::ControlFlow::Exit,
             _ => {}
         },
         _ => {}
