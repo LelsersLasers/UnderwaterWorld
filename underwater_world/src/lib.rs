@@ -1,8 +1,8 @@
 mod consts;
+mod state;
 
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
-
 
 fn set_up_logger() {
     cfg_if::cfg_if! {
@@ -15,25 +15,26 @@ fn set_up_logger() {
     }
 }
 
-
-#[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
-pub fn run() {
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
+pub async fn run() {
     set_up_logger();
-
 
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .with_title("Underwater World")
-        .with_inner_size(winit::dpi::LogicalSize::new(consts::WINDOW_WIDTH, consts::WINDOW_HEIGHT))
-        .build(&event_loop).unwrap();
-
+        .with_inner_size(winit::dpi::LogicalSize::new(
+            consts::WINDOW_WIDTH,
+            consts::WINDOW_HEIGHT,
+        ))
+        .build(&event_loop)
+        .unwrap();
 
     #[cfg(target_arch = "wasm32")]
     {
         // Winit prevents sizing with CSS, so we have to set the size manually when on web.
         use winit::dpi::PhysicalSize;
         window.set_inner_size(PhysicalSize::new(450, 400));
-        
+
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()
             .and_then(|win| win.document())
@@ -45,17 +46,18 @@ pub fn run() {
             })
             .expect("Couldn't append canvas to document body.");
     }
- 
+
+    let mut state = state::State::new(window).await;
 
     event_loop.run(move |event, _, control_flow| match event {
         winit::event::Event::WindowEvent {
             ref event,
             window_id,
-        } if window_id == window.id() => match event {
+        } if window_id == state.window().id() => match event {
             winit::event::WindowEvent::CloseRequested
             | winit::event::WindowEvent::KeyboardInput {
                 input:
-                winit::event::KeyboardInput {
+                    winit::event::KeyboardInput {
                         state: winit::event::ElementState::Pressed,
                         virtual_keycode: Some(winit::event::VirtualKeyCode::Escape),
                         ..

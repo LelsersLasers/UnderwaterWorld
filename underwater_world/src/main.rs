@@ -1,6 +1,5 @@
 use underwater_world::run;
 
 fn main() {
-    run();
+    pollster::block_on(run());
 }
- 
