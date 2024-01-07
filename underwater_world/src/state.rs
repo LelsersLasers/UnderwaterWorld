@@ -1,3 +1,5 @@
+use crate::consts;
+
 pub struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -106,10 +108,6 @@ impl State {
         }
     }
 
-    pub fn window(&self) -> &winit::window::Window {
-        &self.window
-    }
-
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
@@ -123,10 +121,52 @@ impl State {
         false
     }
 
-    fn update(&mut self) {
+    pub fn update(&mut self) {
     }
 
-    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        todo!()
+    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let output = self.surface.get_current_texture()?;
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
+        //--------------------------------------------------------------------//
+
+        //--------------------------------------------------------------------//
+        {
+            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(consts::CLEAR_COLOR),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+        }
+        //--------------------------------------------------------------------//
+    
+
+        //--------------------------------------------------------------------//
+        // submit will accept anything that implements IntoIter
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+        //--------------------------------------------------------------------//
+    
+        Ok(())
+    }
+
+    pub fn window(&self) -> &winit::window::Window {
+        &self.window
+    }
+
+    pub fn size(&self) -> winit::dpi::PhysicalSize<u32> {
+        self.size
     }
 }
