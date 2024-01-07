@@ -22,7 +22,7 @@ pub async fn run() {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .with_title("Underwater World")
-        .with_inner_size(winit::dpi::LogicalSize::new(
+        .with_inner_size(winit::dpi::PhysicalSize::new(
             consts::WINDOW_WIDTH,
             consts::WINDOW_HEIGHT,
         ))
@@ -53,19 +53,30 @@ pub async fn run() {
         winit::event::Event::WindowEvent {
             ref event,
             window_id,
-        } if window_id == state.window().id() => match event {
-            winit::event::WindowEvent::CloseRequested
-            | winit::event::WindowEvent::KeyboardInput {
-                input:
-                    winit::event::KeyboardInput {
-                        state: winit::event::ElementState::Pressed,
-                        virtual_keycode: Some(winit::event::VirtualKeyCode::Escape),
+        } if window_id == state.window().id() => {
+            if !state.input(event) {
+                match event {
+                    winit::event::WindowEvent::CloseRequested
+                    | winit::event::WindowEvent::KeyboardInput {
+                        input:
+                            winit::event::KeyboardInput {
+                                state: winit::event::ElementState::Pressed,
+                                virtual_keycode: Some(winit::event::VirtualKeyCode::Escape),
+                                ..
+                            },
                         ..
-                    },
-                ..
-            } => *control_flow = winit::event_loop::ControlFlow::Exit,
-            _ => {}
-        },
+                    } => *control_flow = winit::event_loop::ControlFlow::Exit,
+                    winit::event::WindowEvent::Resized(physical_size) => {
+                        state.resize(*physical_size);
+                    }
+                    winit::event::WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                        // new_inner_size is &&mut so we have to dereference it twice
+                        state.resize(**new_inner_size);
+                    }
+                    _ => {}
+                }
+            }
+        }
         _ => {}
     });
 }
