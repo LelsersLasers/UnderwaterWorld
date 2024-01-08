@@ -1,6 +1,7 @@
 mod consts;
 mod draw;
 mod state;
+mod texture;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
