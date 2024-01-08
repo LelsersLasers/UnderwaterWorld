@@ -1,3 +1,4 @@
+mod camera;
 mod consts;
 mod draw;
 mod state;
