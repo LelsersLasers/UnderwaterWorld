@@ -1,4 +1,5 @@
 mod consts;
+mod draw;
 mod state;
 
 #[cfg(target_arch = "wasm32")]
