@@ -1,4 +1,4 @@
-use crate::{camera, consts, draw, texture};
+use crate::{camera, consts, draw, texture, timer};
 
 use wgpu::util::DeviceExt;
 
@@ -22,6 +22,8 @@ pub struct State {
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     camera_controller: camera::CameraController,
+
+    fps_counter: timer::FpsCounter,
 
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
@@ -219,7 +221,7 @@ impl State {
             label: Some("camera_bind_group"),
         });
 
-        let camera_controller = camera::CameraController::new(0.2);
+        let camera_controller = camera::CameraController::new(consts::CAMERA_SPEED);
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
@@ -289,6 +291,10 @@ impl State {
         );
         //--------------------------------------------------------------------//
 
+        //--------------------------------------------------------------------//
+        let fps_counter = timer::FpsCounter::new();
+        //--------------------------------------------------------------------//
+
         Self {
             window,
             surface,
@@ -306,6 +312,7 @@ impl State {
             camera_buffer,
             camera_bind_group,
             camera_controller,
+            fps_counter,
         }
     }
 
@@ -323,7 +330,8 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        self.camera_controller.update_camera(&mut self.camera);
+        let delta = self.fps_counter.update();
+        self.camera_controller.update_camera(&mut self.camera, delta);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
     }
