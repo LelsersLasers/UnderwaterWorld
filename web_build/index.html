@@ -14,12 +14,14 @@
 </head>
 
 <body id="wasm-example">
-  <script type="module">
-      import init from "./pkg/underwater_world.js";
-      init().then(() => {
-          console.log("WASM Loaded");
-      });
-  </script>
+    <div id="add_canvas_to"></div>
+
+    <script type="module">
+        import init from "./pkg/underwater_world.js";
+        init().then(() => {
+            console.log("WASM Loaded");
+        });
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,1 @@
+wasm-pack build --target web --release --out-dir ../web_build/pkg --no-typescript --no-pack

@@ -12,7 +12,7 @@ fn set_up_logger() {
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-            console_log::init_with_level(log::Level::Warn).expect("Couldn't initialize logger");
+            console_log::init_with_level(log::Level::Info).expect("Couldn't initialize logger");
         } else {
             env_logger::init();
         }
@@ -37,15 +37,18 @@ pub async fn run() {
     {
         // Winit prevents sizing with CSS, so we have to set the size manually when on web.
         use winit::dpi::PhysicalSize;
-        window.set_inner_size(PhysicalSize::new(450, 400));
+        window.set_inner_size(PhysicalSize::new(
+            consts::WINDOW_WIDTH,
+            consts::WINDOW_HEIGHT,
+        ));
 
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()
             .and_then(|win| win.document())
             .and_then(|doc| {
-                let dst = doc.get_element_by_id("canvas")?;
+                let div = doc.get_element_by_id("add_canvas_to")?;
                 let canvas = web_sys::Element::from(window.canvas());
-                dst.append_child(&canvas).ok()?;
+                div.append_child(&canvas).ok()?;
                 Some(())
             })
             .expect("Couldn't append canvas to document body.");
