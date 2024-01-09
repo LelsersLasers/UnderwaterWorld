@@ -182,7 +182,7 @@ impl State {
         let mut camera = camera::Camera {
             // position the camera 1 unit up and 2 units back
             // +z is out of the screen
-            eye: (10.0, 0.0, 0.0).into(),
+            eye: (0.0, 0.0, 0.0).into(),
             // have it look at the origin
             target: (0.0, 0.0, 0.0).into(),
             // which way is "up"
