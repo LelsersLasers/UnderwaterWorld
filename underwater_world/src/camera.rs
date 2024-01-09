@@ -159,8 +159,8 @@ impl CameraController {
         } else if self.lon < -std::f64::consts::PI {
             self.lon += 2. * std::f64::consts::PI;
         }
-        if self.radius < 5. {
-            self.radius = 5.;
+        if self.radius < 1. {
+            self.radius = 1.;
         }
     }
     pub fn update_eye(&self, camera: &mut Camera) {
