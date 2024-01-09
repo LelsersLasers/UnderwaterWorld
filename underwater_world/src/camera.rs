@@ -126,7 +126,6 @@ impl CameraController {
         }
     }
 
-    // pub fn update_camera(&self, camera: &mut Camera, delta: f64) {
     pub fn update(&mut self, camera: &mut Camera, delta: f64) {
         if self.is_forward_pressed {
             self.lat += self.speed * delta;

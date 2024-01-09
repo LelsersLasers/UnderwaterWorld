@@ -366,6 +366,8 @@ impl State {
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
+        println!("FPS: {:5.0}", self.fps_counter.fps());
+
         self.camera_controller.update(&mut self.camera, delta);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
