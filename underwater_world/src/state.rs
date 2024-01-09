@@ -24,10 +24,8 @@ pub struct State {
     depth_texture: texture::Texture,
 
     camera: camera::Camera,
-    camera_uniform: camera::CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
-    camera_controller: camera::CameraController,
 
     fps_counter: timer::FpsCounter,
 
@@ -179,29 +177,12 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let mut camera = camera::Camera {
-            // position the camera 1 unit up and 2 units back
-            // +z is out of the screen
-            eye: (0.0, 0.0, 0.0).into(),
-            // have it look at the origin
-            target: (0.0, 0.0, 0.0).into(),
-            // which way is "up"
-            up: cgmath::Vector3::unit_z(),
-            aspect: config.width as f32 / config.height as f32,
-            fovy: 45.0,
-            znear: 0.1,
-            zfar: 100.0,
-        };
-        let camera_controller = camera::CameraController::new();
-        camera_controller.update_eye(&mut camera);
-
-        let mut camera_uniform = camera::CameraUniform::new();
-        camera_uniform.update_view_proj(&camera);
+        let camera = camera::Camera::new(&config);
 
         let camera_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Camera Buffer"),
-                contents: bytemuck::cast_slice(&[camera_uniform]),
+                contents: bytemuck::cast_slice(&[*camera.uniform()]),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }
         );
@@ -356,10 +337,8 @@ impl State {
             diffuse_texture,
             depth_texture,
             camera,
-            camera_uniform,
             camera_buffer,
             camera_bind_group,
-            camera_controller,
             fps_counter,
         }
     }
@@ -376,16 +355,16 @@ impl State {
     }
 
     pub fn input(&mut self, event: &winit::event::WindowEvent) -> bool {
-        self.camera_controller.process_events(event)
+        self.camera.process_events(event)
     }
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
         println!("FPS: {:5.0}", self.fps_counter.fps());
 
-        self.camera_controller.update(&mut self.camera, delta);
-        self.camera_uniform.update_view_proj(&self.camera);
-        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+        self.camera.update(delta);
+
+        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
