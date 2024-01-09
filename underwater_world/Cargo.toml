@@ -16,7 +16,7 @@ bytemuck = { version = "1.12", features = [ "derive" ] }
 anyhow = "1.0"
 cgmath = "0.18"
 instant = "0.1"
-# noise = "0.8.2"
+noise = "0.8.2"
 
 [dependencies.image]
 version = "0.24"

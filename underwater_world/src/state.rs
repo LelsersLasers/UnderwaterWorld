@@ -29,6 +29,8 @@ pub struct State {
 
     fps_counter: timer::FpsCounter,
 
+    perlin: noise::Perlin,
+
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
     // unsafe references to the window's resources.
@@ -321,6 +323,12 @@ impl State {
         let fps_counter = timer::FpsCounter::new();
         //--------------------------------------------------------------------//
 
+        //--------------------------------------------------------------------//
+        let seed = instant::now() as u32;
+        println!("Seed: {}", seed);
+        let perlin = noise::Perlin::new(seed);
+        //--------------------------------------------------------------------//
+
         Self {
             window,
             surface,
@@ -340,6 +348,7 @@ impl State {
             camera_buffer,
             camera_bind_group,
             fps_counter,
+            perlin,
         }
     }
 
@@ -359,8 +368,14 @@ impl State {
     }
 
     pub fn update(&mut self) {
+        use noise::NoiseFn;
+
         let delta = self.fps_counter.update();
         println!("FPS: {:5.0}", self.fps_counter.fps());
+
+        let now = instant::now();
+        let dense = self.perlin.get([now, now, now]);
+        println!("Dense: {}", dense);
 
         self.camera.update(delta);
 
