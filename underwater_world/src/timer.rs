@@ -20,11 +20,11 @@ impl FpsCounter {
         self.delta
     }
 
-    pub fn fps(&self) -> f64 {
-        if self.delta == 0.0 {
-            -1.0
-        } else {
-            1.0 / self.delta
-        }
-    }
+    // pub fn fps(&self) -> f64 {
+    //     if self.delta == 0.0 {
+    //         -1.0
+    //     } else {
+    //         1.0 / self.delta
+    //     }
+    // }
 }

@@ -51,21 +51,35 @@ impl CameraUniform {
 
 //----------------------------------------------------------------------------//
 pub struct CameraController {
-    speed: f32,
+    speed: f64,
+    zoom_speed: f64,
+
+    lat: f64,
+    lon: f64,
+    radius: f64,
+
     is_forward_pressed: bool,
     is_backward_pressed: bool,
     is_left_pressed: bool,
     is_right_pressed: bool,
+    is_up_pressed: bool,
+    is_down_pressed: bool,
 }
 
 impl CameraController {
-    pub fn new(speed: f32) -> Self {
+    pub fn new() -> Self {
         Self {
-            speed,
+            speed: 0.75,
+            zoom_speed: 3.0,
+            lat: 0.,
+            lon: 0.,
+            radius: 10.,
             is_forward_pressed: false,
             is_backward_pressed: false,
             is_left_pressed: false,
             is_right_pressed: false,
+            is_up_pressed: false,
+            is_down_pressed: false,
         }
     }
 
@@ -97,6 +111,14 @@ impl CameraController {
                         self.is_right_pressed = is_pressed;
                         true
                     }
+                    winit::event::VirtualKeyCode::Q | winit::event::VirtualKeyCode::PageUp => {
+                        self.is_up_pressed = is_pressed;
+                        true
+                    }
+                    winit::event::VirtualKeyCode::E | winit::event::VirtualKeyCode::PageDown => {
+                        self.is_down_pressed = is_pressed;
+                        true
+                    }
                     _ => false,
                 }
             }
@@ -104,38 +126,50 @@ impl CameraController {
         }
     }
 
-    pub fn update_camera(&self, camera: &mut Camera, delta: f64) {
-        // TODO: this is terrible
-        
-        use cgmath::InnerSpace;
-        let forward = camera.target - camera.eye;
-        let forward_norm = forward.normalize();
-        let forward_mag = forward.magnitude();
-
-        // Prevents glitching when the camera gets too close to the
-        // center of the scene.
-        if self.is_forward_pressed && forward_mag > self.speed {
-            camera.eye += forward_norm * self.speed * delta as f32;
+    // pub fn update_camera(&self, camera: &mut Camera, delta: f64) {
+    pub fn update(&mut self, camera: &mut Camera, delta: f64) {
+        if self.is_forward_pressed {
+            self.lat += self.speed * delta;
         }
         if self.is_backward_pressed {
-            camera.eye -= forward_norm * self.speed * delta as f32;
-        }
-
-        let right = forward_norm.cross(camera.up);
-
-        // Redo radius calc in case the forward/backward is pressed.
-        let forward = camera.target - camera.eye;
-        let forward_mag = forward.magnitude();
-
-        if self.is_right_pressed {
-            // Rescale the distance between the target and the eye so 
-            // that it doesn't change. The eye, therefore, still 
-            // lies on the circle made by the target and eye.
-            camera.eye = camera.target - (forward + right * self.speed).normalize() * forward_mag;
+            self.lat -= self.speed * delta;
         }
         if self.is_left_pressed {
-            camera.eye = camera.target - (forward - right * self.speed).normalize() * forward_mag;
+            self.lon -= self.speed * delta;
         }
+        if self.is_right_pressed {
+            self.lon += self.speed * delta;
+        }
+        if self.is_up_pressed {
+            self.radius -= self.zoom_speed * delta;
+        }
+        if self.is_down_pressed {
+            self.radius += self.zoom_speed * delta;
+        }
+        self.clamp_pos();
+        self.update_eye(camera);
+    }
+    fn clamp_pos(&mut self) {
+        if self.lat > std::f64::consts::PI / 2. {
+            self.lat = std::f64::consts::PI / 2. - 0.0001;
+        } else if self.lat < -std::f64::consts::PI / 2. {
+            self.lat = -std::f64::consts::PI / 2. + 0.0001;
+        }
+        if self.lon > std::f64::consts::PI {
+            self.lon -= 2. * std::f64::consts::PI;
+        } else if self.lon < -std::f64::consts::PI {
+            self.lon += 2. * std::f64::consts::PI;
+        }
+        if self.radius < 5. {
+            self.radius = 5.;
+        }
+    }
+    pub fn update_eye(&self, camera: &mut Camera) {
+        camera.eye = cgmath::Point3::new(
+            (self.radius * self.lat.cos() * self.lon.cos()) as f32,
+            (self.radius * self.lat.cos() * self.lon.sin()) as f32,
+            (self.radius * self.lat.sin()) as f32,
+        );
     }
 }
 //----------------------------------------------------------------------------//

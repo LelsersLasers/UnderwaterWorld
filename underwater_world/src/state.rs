@@ -173,19 +173,21 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let camera = camera::Camera {
+        let mut camera = camera::Camera {
             // position the camera 1 unit up and 2 units back
             // +z is out of the screen
-            eye: (0.0, 1.0, 2.0).into(),
+            eye: (10.0, 0.0, 0.0).into(),
             // have it look at the origin
             target: (0.0, 0.0, 0.0).into(),
             // which way is "up"
-            up: cgmath::Vector3::unit_y(),
+            up: cgmath::Vector3::unit_z(),
             aspect: config.width as f32 / config.height as f32,
             fovy: 45.0,
             znear: 0.1,
             zfar: 100.0,
         };
+        let camera_controller = camera::CameraController::new();
+        camera_controller.update_eye(&mut camera);
 
         let mut camera_uniform = camera::CameraUniform::new();
         camera_uniform.update_view_proj(&camera);
@@ -224,8 +226,6 @@ impl State {
             ],
             label: Some("camera_bind_group"),
         });
-
-        let camera_controller = camera::CameraController::new(consts::CAMERA_SPEED);
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
@@ -296,9 +296,9 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let instances = (0..draw::NUM_INSTANCES_PER_ROW).flat_map(|z| {
+        let instances = (0..draw::NUM_INSTANCES_PER_ROW).flat_map(|y| {
             (0..draw::NUM_INSTANCES_PER_ROW).map(move |x| {
-                let position = cgmath::Vector3 { x: x as f32, y: 0.0, z: z as f32 } - draw::INSTANCE_DISPLACEMENT;
+                let position = cgmath::Vector3 { x: x as f32, y: y as f32, z: 0.0 } - draw::INSTANCE_DISPLACEMENT;
 
                 let rotation = if position.is_zero() {
                     // this is needed so an object at (0, 0, 0) won't get scaled to zero
@@ -366,7 +366,7 @@ impl State {
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
-        self.camera_controller.update_camera(&mut self.camera, delta);
+        self.camera_controller.update(&mut self.camera, delta);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
     }
