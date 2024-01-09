@@ -18,9 +18,6 @@ pub struct State {
     instances: Vec<draw::Instance>,
     instance_buffer: wgpu::Buffer,
 
-    diffuse_bind_group: wgpu::BindGroup,
-    diffuse_texture: texture::Texture,
-
     depth_texture: texture::Texture,
 
     camera: camera::Camera,
@@ -128,53 +125,6 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let diffuse_bytes = include_bytes!("tree.png");
-        let diffuse_texture = texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "tree.png").unwrap();
-
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        // This should match the filterable field of the
-                        // corresponding Texture entry above.
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
-
-            let diffuse_bind_group = device.create_bind_group(
-                &wgpu::BindGroupDescriptor {
-                    layout: &texture_bind_group_layout,
-                    entries: &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                        }
-                    ],
-                    label: Some("diffuse_bind_group"),
-                }
-            );
-        //--------------------------------------------------------------------//
-
-        //--------------------------------------------------------------------//
         let depth_texture = texture::Texture::create_depth_texture(&device, &config, "depth_texture");
         //--------------------------------------------------------------------//
 
@@ -224,7 +174,6 @@ impl State {
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
-                    &texture_bind_group_layout,
                     &camera_bind_group_layout,
                 ],
                 push_constant_ranges: &[],
@@ -341,8 +290,6 @@ impl State {
             index_buffer,
             instances,
             instance_buffer,
-            diffuse_bind_group,
-            diffuse_texture,
             depth_texture,
             camera,
             camera_buffer,
@@ -422,8 +369,7 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
-            render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]); 
-            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+            render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
             
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
