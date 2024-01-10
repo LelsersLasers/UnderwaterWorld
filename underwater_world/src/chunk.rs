@@ -78,7 +78,7 @@ impl Chunk {
 						[x, y + 1, z + 1],
 					];
 
-					let corners_isos = cube_corners.iter().map(|corner| {
+					let isos = cube_corners.iter().map(|corner| {
 						let corner = [
 							corner[0] as f64 + chunk_offset[0] as f64,
 							corner[1] as f64 + chunk_offset[1] as f64,
@@ -88,7 +88,7 @@ impl Chunk {
 					}).collect::<Vec<f32>>();
 
 					let mut triangulation_idx = 0;
-					for (i, iso) in corners_isos.iter().enumerate() {
+					for (i, iso) in isos.iter().enumerate() {
 						if *iso < ISO_LEVEL {
 							triangulation_idx |= 1 << i;
 						}
@@ -101,19 +101,28 @@ impl Chunk {
 							break;
 						}
 
-						// let corners = marching_table::EDGE_VERTEX_INDICES[*tri_index as usize];
-						let corner_a_idx = marching_table::EDGE_VERTEX_A[*tri_index as usize];
-						let corner_b_idx = marching_table::EDGE_VERTEX_B[*tri_index as usize];
+						let edge_corners_indices = marching_table::EDGE_VERTEX_INDICES[*tri_index as usize];
+						let corner_a_idx = edge_corners_indices[0];
+						let corner_b_idx = edge_corners_indices[1];
 
 						let corner_a = cube_corners[corner_a_idx];
 						let corner_b = cube_corners[corner_b_idx];
 
-						let middle = [
-							(corner_a[0] + corner_b[0]) as f32 / 2.0,
-							(corner_a[1] + corner_b[1]) as f32 / 2.0,
-							(corner_a[2] + corner_b[2]) as f32 / 2.0,
+						let iso_a = isos[corner_a_idx];
+						let iso_b = isos[corner_b_idx];
+
+						// interpolate using dist from iso
+						let t = (ISO_LEVEL - iso_a) / (iso_b - iso_a);
+						let corner_diff = [
+							corner_b[0] as f32 - corner_a[0] as f32,
+							corner_b[1] as f32 - corner_a[1] as f32,
+							corner_b[2] as f32 - corner_a[2] as f32,
 						];
-						// TODO: interpolate!
+						let middle = [
+							corner_a[0] as f32 + t * corner_diff[0],
+							corner_a[1] as f32 + t * corner_diff[1],
+							corner_a[2] as f32 + t * corner_diff[2],
+						];
 
 						let color_intensity = *tri_index as f32 / 16.0;
 
