@@ -63,6 +63,23 @@ impl Chunk {
 			self.pos[2] * CHUNK_SIZE as i32,
 		];
 
+		// flat vec
+		let isos = (0..CHUNK_SIZE + 1).flat_map(|x| {
+			(0..CHUNK_SIZE + 1).flat_map(move |y| {
+				(0..CHUNK_SIZE + 1).map(move |z| {
+					let corner = [
+						x as f64 + chunk_offset[0] as f64,
+						y as f64 + chunk_offset[1] as f64,
+						z as f64 + chunk_offset[2] as f64,
+					];
+					perlin.get([corner[0] / 16.0, corner[1] / 16.0, corner[2] / 16.0]) as f32
+				})
+			})
+		}).collect::<Vec<f32>>();
+		let corner_to_iso_idx = |corner: [usize; 3]| {
+			corner[0] * (CHUNK_SIZE + 1) * (CHUNK_SIZE + 1) + corner[1] * (CHUNK_SIZE + 1) + corner[2]
+		};
+
 		for x in 0..CHUNK_SIZE {
 			for y in 0..CHUNK_SIZE {
 				for z in 0..CHUNK_SIZE {
@@ -78,18 +95,11 @@ impl Chunk {
 						[x, y + 1, z + 1],
 					];
 
-					let isos = cube_corners.iter().map(|corner| {
-						let corner = [
-							corner[0] as f64 + chunk_offset[0] as f64,
-							corner[1] as f64 + chunk_offset[1] as f64,
-							corner[2] as f64 + chunk_offset[2] as f64,
-						];
-						perlin.get([corner[0] / 16.0, corner[1] / 16.0, corner[2] / 16.0]) as f32
-					}).collect::<Vec<f32>>();
-
 					let mut triangulation_idx = 0;
-					for (i, iso) in isos.iter().enumerate() {
-						if *iso < ISO_LEVEL {
+					for (i, cube_corner) in cube_corners.iter().enumerate() {
+						let iso_idx = corner_to_iso_idx(*cube_corner);
+						let iso = isos[iso_idx];
+						if iso < ISO_LEVEL {
 							triangulation_idx |= 1 << i;
 						}
 					}
@@ -108,8 +118,11 @@ impl Chunk {
 						let corner_a = cube_corners[corner_a_idx];
 						let corner_b = cube_corners[corner_b_idx];
 
-						let iso_a = isos[corner_a_idx];
-						let iso_b = isos[corner_b_idx];
+						let iso_idx_a = corner_to_iso_idx(corner_a);
+						let iso_idx_b = corner_to_iso_idx(corner_b);
+
+						let iso_a = isos[iso_idx_a];
+						let iso_b = isos[iso_idx_b];
 
 						// interpolate using dist from iso
 						let t = (ISO_LEVEL - iso_a) / (iso_b - iso_a);

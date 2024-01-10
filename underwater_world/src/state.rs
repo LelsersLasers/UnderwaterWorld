@@ -334,7 +334,7 @@ impl State {
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
-        // println!("FPS: {:5.0}", self.fps_counter.fps());
+        println!("FPS: {:5.0}", self.fps_counter.fps());
 
         self.camera.update(delta);
 
