@@ -1,6 +1,5 @@
-use crate::{camera, consts, draw, texture, timer};
+use crate::{camera, chunk, consts, texture, timer};
 
-use cgmath::prelude::*;
 use wgpu::util::DeviceExt;
 
 pub struct State {
@@ -12,11 +11,11 @@ pub struct State {
 
     render_pipeline: wgpu::RenderPipeline,
 
-    vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
+    // vertex_buffer: wgpu::Buffer,
+    // index_buffer: wgpu::Buffer,
 
-    instances: Vec<draw::Instance>,
-    instance_buffer: wgpu::Buffer,
+    // instances: Vec<draw::Instance>,
+    // instance_buffer: wgpu::Buffer,
 
     depth_texture: texture::Texture,
 
@@ -27,6 +26,8 @@ pub struct State {
     fps_counter: timer::FpsCounter,
 
     perlin: noise::Perlin,
+
+    chunks: Vec<chunk::Chunk>,
 
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
@@ -85,6 +86,7 @@ impl State {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
+                    // features: wgpu::Features::POLYGON_MODE_LINE,
                     features: wgpu::Features::empty(),
                     // WebGL doesn't support all of wgpu's features, so if
                     // we're building for the web, we'll have to disable some.
@@ -185,7 +187,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[draw::Vertex::desc(), draw::InstanceRaw::desc()],
+                buffers: &[chunk::Vert::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -202,6 +204,7 @@ impl State {
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
                 // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
+                // polygon_mode: wgpu::PolygonMode::Line,
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
                 conservative: false,
@@ -223,49 +226,49 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(draw::VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-        let index_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Index Buffer"),
-                contents: bytemuck::cast_slice(draw::INDICES),
-                usage: wgpu::BufferUsages::INDEX,
-            }
-        );
+        // let vertex_buffer = device.create_buffer_init(
+        //     &wgpu::util::BufferInitDescriptor {
+        //         label: Some("Vertex Buffer"),
+        //         contents: bytemuck::cast_slice(draw::VERTICES),
+        //         usage: wgpu::BufferUsages::VERTEX,
+        //     }
+        // );
+        // let index_buffer = device.create_buffer_init(
+        //     &wgpu::util::BufferInitDescriptor {
+        //         label: Some("Index Buffer"),
+        //         contents: bytemuck::cast_slice(draw::INDICES),
+        //         usage: wgpu::BufferUsages::INDEX,
+        //     }
+        // );
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let instances = (0..draw::NUM_INSTANCES_PER_ROW).flat_map(|y| {
-            (0..draw::NUM_INSTANCES_PER_ROW).map(move |x| {
-                let position = cgmath::Vector3 { x: x as f32, y: y as f32, z: 0.0 } - draw::INSTANCE_DISPLACEMENT;
+        // let instances = (0..draw::NUM_INSTANCES_PER_ROW).flat_map(|y| {
+        //     (0..draw::NUM_INSTANCES_PER_ROW).map(move |x| {
+        //         let position = cgmath::Vector3 { x: x as f32, y: y as f32, z: 0.0 } - draw::INSTANCE_DISPLACEMENT;
 
-                let rotation = if position.is_zero() {
-                    // this is needed so an object at (0, 0, 0) won't get scaled to zero
-                    // as Quaternions can affect scale if they're not created correctly
-                    cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0))
-                } else {
-                    cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
-                };
+        //         let rotation = if position.is_zero() {
+        //             // this is needed so an object at (0, 0, 0) won't get scaled to zero
+        //             // as Quaternions can affect scale if they're not created correctly
+        //             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0))
+        //         } else {
+        //             cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
+        //         };
 
-                draw::Instance {
-                    position, rotation,
-                }
-            })
-        }).collect::<Vec<_>>();
+        //         draw::Instance {
+        //             position, rotation,
+        //         }
+        //     })
+        // }).collect::<Vec<_>>();
 
-        let instance_data = instances.iter().map(draw::Instance::to_raw).collect::<Vec<_>>();
-        let instance_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: bytemuck::cast_slice(&instance_data),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
+        // let instance_data = instances.iter().map(draw::Instance::to_raw).collect::<Vec<_>>();
+        // let instance_buffer = device.create_buffer_init(
+        //     &wgpu::util::BufferInitDescriptor {
+        //         label: Some("Instance Buffer"),
+        //         contents: bytemuck::cast_slice(&instance_data),
+        //         usage: wgpu::BufferUsages::VERTEX,
+        //     }
+        // );
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
@@ -273,9 +276,23 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let seed = instant::now() as u32;
+        let seed = (instant::now().round() % u32::MAX as f64) as u32;
         println!("Seed: {}", seed);
         let perlin = noise::Perlin::new(seed);
+        //--------------------------------------------------------------------//
+
+        //--------------------------------------------------------------------//
+        let mut chunks = Vec::new();
+
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    let mut chunk = chunk::Chunk::new([x, y, z]);
+                    chunk.create_verts(&perlin, &device, &queue);
+                    chunks.push(chunk);
+                }
+            }
+        }
         //--------------------------------------------------------------------//
 
         Self {
@@ -286,16 +303,17 @@ impl State {
             config,
             size,
             render_pipeline,
-            vertex_buffer,
-            index_buffer,
-            instances,
-            instance_buffer,
+            // vertex_buffer,
+            // index_buffer,
+            // instances,
+            // instance_buffer,
             depth_texture,
             camera,
             camera_buffer,
             camera_bind_group,
             fps_counter,
             perlin,
+            chunks,
         }
     }
 
@@ -315,14 +333,8 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        use noise::NoiseFn;
-
         let delta = self.fps_counter.update();
-        println!("FPS: {:5.0}", self.fps_counter.fps());
-
-        let now = instant::now();
-        let dense = self.perlin.get([now, now, now]);
-        println!("Dense: {}", dense);
+        // println!("FPS: {:5.0}", self.fps_counter.fps());
 
         self.camera.update(delta);
 
@@ -370,12 +382,17 @@ impl State {
             render_pass.set_pipeline(&self.render_pipeline);
 
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
-            
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-            render_pass.draw_indexed(0..draw::INDICES.len() as u32, 0, 0..self.instances.len() as _);
+            for chunk in self.chunks.iter() {
+                render_pass.set_vertex_buffer(0, chunk.buffer_slice());
+                render_pass.draw(0..chunk.len() as u32, 0..1);
+            }
+            
+            // render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            // render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+            // render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+            // render_pass.draw_indexed(0..draw::INDICES.len() as u32, 0, 0..self.instances.len() as _);
         }
         //--------------------------------------------------------------------//
 
