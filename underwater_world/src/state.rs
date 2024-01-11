@@ -1,7 +1,5 @@
 use crate::{camera, chunk, consts, texture, timer};
 
-use wgpu::util::DeviceExt;
-
 pub struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -38,6 +36,8 @@ pub struct State {
 impl State {
     // Creating some of the wgpu types requires async code
     pub async fn new(window: winit::window::Window) -> Self {
+        use wgpu::util::DeviceExt;
+
         let size = window.inner_size();
 
         //--------------------------------------------------------------------//
@@ -287,8 +287,7 @@ impl State {
         for x in -1..=1 {
             for y in -1..=1 {
                 for z in -1..=1 {
-                    let mut chunk = chunk::Chunk::new([x, y, z]);
-                    chunk.create_verts(&perlin, &device, &queue);
+                    let chunk = chunk::Chunk::new([x, y, z], &perlin, &device);
                     chunks.push(chunk);
                 }
             }
@@ -385,7 +384,7 @@ impl State {
 
             for chunk in self.chunks.iter() {
                 render_pass.set_vertex_buffer(0, chunk.buffer_slice());
-                render_pass.draw(0..chunk.len() as u32, 0..1);
+                render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }
             
             // render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

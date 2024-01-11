@@ -34,33 +34,23 @@ impl Vert {
 // space of 16x16x16
 pub struct Chunk {
 	pos: [i32; 3],
-	verts: Vec<Vert>,
-	verts_buffer: Option<wgpu::Buffer>,
+	num_verts: usize,
+	verts_buffer: wgpu::Buffer,
 }
 
 impl Chunk {
-	pub fn new(pos: [i32; 3]) -> Self {
-		Self {
-			pos,
-			verts: Vec::new(),
-			verts_buffer: None,
-		}
-	}
-
-	pub fn create_verts(
-		&mut self, perlin: &noise::Perlin,
+	pub fn new(
+        pos: [i32; 3],
+        perlin: &noise::Perlin,
 		device: &wgpu::Device,
-		queue: &wgpu::Queue,
-	) {
-		// marching cubes
+    ) -> Self {
 		use noise::NoiseFn;
+        use wgpu::util::DeviceExt;
 
-		self.verts.clear();
-
-		let chunk_offset = [
-			self.pos[0] * CHUNK_SIZE as i32,
-			self.pos[1] * CHUNK_SIZE as i32,
-			self.pos[2] * CHUNK_SIZE as i32,
+        let chunk_offset = [
+			pos[0] * CHUNK_SIZE as i32,
+			pos[1] * CHUNK_SIZE as i32,
+			pos[2] * CHUNK_SIZE as i32,
 		];
 
 		// flat vec
@@ -79,6 +69,8 @@ impl Chunk {
 		let corner_to_iso_idx = |corner: [usize; 3]| {
 			corner[0] * (CHUNK_SIZE + 1) * (CHUNK_SIZE + 1) + corner[1] * (CHUNK_SIZE + 1) + corner[2]
 		};
+
+        let mut verts = Vec::new();
 
 		for x in 0..CHUNK_SIZE {
 			for y in 0..CHUNK_SIZE {
@@ -148,34 +140,30 @@ impl Chunk {
 							color: [0.7, color_intensity, color_intensity],
 						};
 
-						self.verts.push(vert);
+						verts.push(vert);
 					}
 				}
 			}
 		}
 
-		if self.verts_buffer.is_none() {
-			use wgpu::util::DeviceExt;
+        let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some(&format!("{:?} Vertex Buffer", pos)),
+            contents: bytemuck::cast_slice(&verts),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
 
-			self.verts_buffer = Some(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("{:?} Vertex Buffer", self.pos)),
-                contents: bytemuck::cast_slice(&self.verts),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }));
-		} else {
-			queue.write_buffer(
-				self.verts_buffer.as_ref().unwrap(),
-				0,
-				bytemuck::cast_slice(&self.verts),
-			);
-		}
+        Self {
+            pos,
+            num_verts: verts.len(),
+            verts_buffer,
+        }
 	}
 
 	pub fn buffer_slice(&self) -> wgpu::BufferSlice {
-		self.verts_buffer.as_ref().unwrap().slice(..)
+		self.verts_buffer.slice(..)
 	}
 
-	pub fn len(&self) -> usize {
-		self.verts.len()
+	pub fn num_verts(&self) -> usize {
+		self.num_verts
 	}
 }
