@@ -1,35 +1,10 @@
-use crate::marching_table;
+use crate::{marching_table, draw};
+use noise::NoiseFn;
+use wgpu::util::DeviceExt;
 
 const CHUNK_SIZE: usize = 16;
 const ISO_LEVEL: f32 = 0.0;
 
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Vert {
-	pos: [f32; 3],
-	color: [f32; 3],
-}
-impl Vert {
-	pub fn desc() -> wgpu::VertexBufferLayout<'static> {
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Vert>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    offset: 0,
-                    shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-				wgpu::VertexAttribute {
-					offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-					shader_location: 1,
-					format: wgpu::VertexFormat::Float32x3,
-				}
-            ]
-        }
-    }
-}
 
 // space of 16x16x16
 pub struct Chunk {
@@ -44,9 +19,6 @@ impl Chunk {
         perlin: &noise::Perlin,
 		device: &wgpu::Device,
     ) -> Self {
-		use noise::NoiseFn;
-        use wgpu::util::DeviceExt;
-
         let chunk_offset = [
 			pos[0] * CHUNK_SIZE as i32,
 			pos[1] * CHUNK_SIZE as i32,
@@ -131,15 +103,14 @@ impl Chunk {
 
 						let color_intensity = *tri_index as f32 / 16.0;
 
-						let vert = Vert {
-							pos: [
+						let vert = draw::Vert::new(
+							[
 								middle[0] + chunk_offset[0] as f32,
 								middle[1] + chunk_offset[1] as f32,
 								middle[2] + chunk_offset[2] as f32,
 							],
-							color: [0.7, color_intensity, color_intensity],
-						};
-
+							[0.7, color_intensity, color_intensity],
+						);
 						verts.push(vert);
 					}
 				}
@@ -158,12 +129,14 @@ impl Chunk {
             verts_buffer,
         }
 	}
+}
 
-	pub fn buffer_slice(&self) -> wgpu::BufferSlice {
+impl draw::VertBuffer for Chunk {
+	fn buffer_slice(&self) -> wgpu::BufferSlice {
 		self.verts_buffer.slice(..)
 	}
-
-	pub fn num_verts(&self) -> usize {
+	
+	fn num_verts(&self) -> usize {
 		self.num_verts
 	}
 }

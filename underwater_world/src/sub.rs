@@ -1,4 +1,6 @@
-use crate::camera;
+use crate::{camera, draw};
+use wgpu::util::DeviceExt;
+use cgmath::{Rotation, Rotation3};
 
 const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
@@ -8,6 +10,15 @@ const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
 const TURN_DECAY: f32 = 3.0;
 
+const STACK_COUNT: usize = 8;
+const SECTOR_COUNT: usize = 8;
+const RADIUS: f32 = 2.0;
+const LENGTH: f32 = 4.0;
+const COLOR: [f32; 3] = [
+	0.07843137254,
+	0.07843137254,
+	0.09019607843,
+];
 
 struct Keys {
 	w_down: bool,
@@ -106,11 +117,204 @@ pub struct Sub {
 	speed: f32,
 
 	keys: Keys,
+
+	num_verts: usize,
+	verts_buffer: wgpu::Buffer,
+	// instance_buffer: wgpu::Buffer,
 }
 
 impl Sub {
-	pub fn new() -> Self {
-		let mut sub = Self {
+	pub fn new(device: &wgpu::Device) -> Self {
+
+		// for(int i = 0; i <= stackCount; ++i)
+		// {
+		// 	stackAngle = PI / 2 - i * stackStep;        // starting from pi/2 to -pi/2
+		// 	xy = radius * cosf(stackAngle);             // r * cos(u)
+		// 	z = radius * sinf(stackAngle);              // r * sin(u)
+
+		// 	// add (sectorCount+1) vertices per stack
+		// 	// first and last vertices have same position and normal, but different tex coords
+		// 	for(int j = 0; j <= sectorCount; ++j)
+		// 	{
+		// 		sectorAngle = j * sectorStep;           // starting from 0 to 2pi
+
+		// 		// vertex position (x, y, z)
+		// 		x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
+		// 		y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
+		// 		vertices.push_back(x);
+		// 		vertices.push_back(y);
+		// 		vertices.push_back(z);
+		// }
+
+		// for(int i = 0; i < stackCount; ++i)
+		// {
+		// 	k1 = i * (sectorCount + 1);     // beginning of current stack
+		// 	k2 = k1 + sectorCount + 1;      // beginning of next stack
+
+		// 	for(int j = 0; j < sectorCount; ++j, ++k1, ++k2)
+		// 	{
+		// 		// 2 triangles per sector excluding first and last stacks
+		// 		// k1 => k2 => k1+1
+		// 		if(i != 0)
+		// 		{
+		// 			indices.push_back(k1);
+		// 			indices.push_back(k2);
+		// 			indices.push_back(k1 + 1);
+		// 		}
+
+		// 		// k1+1 => k2 => k2+1
+		// 		if(i != (stackCount-1))
+		// 		{
+		// 			indices.push_back(k1 + 1);
+		// 			indices.push_back(k2);
+		// 			indices.push_back(k2 + 1);
+		// 		}
+
+		let mut verts = Vec::new();
+
+		// capsule: 2 semicircles and a cylinder
+		let sector_step = std::f32::consts::PI * 2.0 / SECTOR_COUNT as f32;
+		let stack_step = (std::f32::consts::PI / 2.0) / STACK_COUNT as f32;
+
+		let forward_x = LENGTH / 2.0;
+		let back_x = -LENGTH / 2.0;
+
+
+		// forward semicircle
+		let mut semicircle_verts = Vec::new();
+
+		for i in 0..=STACK_COUNT {
+			let stack_angle = std::f32::consts::PI / 2.0 - i as f32 * stack_step;
+			let xy = RADIUS * stack_angle.cos();
+			let z = RADIUS * stack_angle.sin();
+
+			let color_z = stack_angle.sin();
+
+			for j in 0..=SECTOR_COUNT {
+				let sector_angle = j as f32 * sector_step;
+
+				let x = xy * sector_angle.cos();
+				let y = xy * sector_angle.sin();
+
+				let color_x = sector_angle.cos();
+				let color_y = sector_angle.sin();
+
+				let color = [
+					color_x,
+					color_y,
+					color_z,
+				];
+
+				semicircle_verts.push(draw::Vert::new([z + forward_x, y, x], color));
+			}
+		}
+		for i in 0..STACK_COUNT {
+			let k1 = i * (SECTOR_COUNT + 1);
+			let k2 = k1 + SECTOR_COUNT + 1;
+
+			for j in 0..SECTOR_COUNT {
+				let k1 = k1 + j;
+				let k2 = k2 + j;
+
+				verts.push(semicircle_verts[k1]);
+				verts.push(semicircle_verts[k2]);
+				verts.push(semicircle_verts[k1 + 1]);
+
+				verts.push(semicircle_verts[k1 + 1]);
+				verts.push(semicircle_verts[k2]);
+				verts.push(semicircle_verts[k2 + 1]);
+			}
+		}
+
+		// middle cylinder
+		for i in 0..SECTOR_COUNT {
+			let sector_angle_left = i as f32 * sector_step;
+			let sector_angle_right = (i + 1) as f32 * sector_step;
+
+			let top_left = [
+				forward_x,
+				RADIUS * sector_angle_left.cos(),
+				RADIUS * sector_angle_left.sin(),
+			];
+			let top_right = [
+				forward_x,
+				RADIUS * sector_angle_right.cos(),
+				RADIUS * sector_angle_right.sin(),
+			];
+			let bottom_left = [
+				back_x,
+				RADIUS * sector_angle_left.cos(),
+				RADIUS * sector_angle_left.sin(),
+			];
+			let bottom_right = [
+				back_x,
+				RADIUS * sector_angle_right.cos(),
+				RADIUS * sector_angle_right.sin(),
+			];
+
+			verts.push(draw::Vert::new(top_left, COLOR));
+			verts.push(draw::Vert::new(bottom_left, COLOR));
+			verts.push(draw::Vert::new(top_right, COLOR));
+
+			verts.push(draw::Vert::new(bottom_left, COLOR));
+			verts.push(draw::Vert::new(bottom_right, COLOR));
+			verts.push(draw::Vert::new(top_right, COLOR));
+		}
+		// back semicircle
+		let mut semicircle_verts = Vec::new();
+
+		for i in 0..=STACK_COUNT {
+			let stack_angle = std::f32::consts::PI / 2.0 - i as f32 * stack_step;
+			let xy = RADIUS * stack_angle.cos();
+			let z = RADIUS * stack_angle.sin();
+
+			let color_z = stack_angle.sin();
+
+			for j in 0..=SECTOR_COUNT {
+				let sector_angle = j as f32 * sector_step;
+
+				let x = xy * sector_angle.cos();
+				let y = xy * sector_angle.sin();
+
+				let color_x = sector_angle.cos();
+				let color_y = sector_angle.sin();
+
+				let color = [
+					color_x,
+					color_y,
+					color_z,
+				];
+
+				semicircle_verts.push(draw::Vert::new([-(z + forward_x), y, x], color));
+			}
+		}
+		for i in 0..STACK_COUNT {
+			let k1 = i * (SECTOR_COUNT + 1);
+			let k2 = k1 + SECTOR_COUNT + 1;
+
+			for j in 0..SECTOR_COUNT {
+				let k1 = k1 + j;
+				let k2 = k2 + j;
+
+				verts.push(semicircle_verts[k1]);
+				verts.push(semicircle_verts[k2]);
+				verts.push(semicircle_verts[k1 + 1]);
+
+				verts.push(semicircle_verts[k1 + 1]);
+				verts.push(semicircle_verts[k2]);
+				verts.push(semicircle_verts[k2 + 1]);
+			}
+		}
+
+
+		let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Sub Vertex Buffer"),
+            contents: bytemuck::cast_slice(&verts),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+
+		Self {
 			pos: cgmath::Point3::new(0.0, 0.0, 0.0),
 			target: cgmath::Point3::new(1.0, 0.0, 0.0),
             up: cgmath::Vector3::unit_z(),
@@ -129,9 +333,10 @@ impl Sub {
 			speed: 4.0,
 
 			keys: Keys::new(),
-		};
-		sub.update(0.0);
-		sub
+
+			num_verts: verts.len(),
+			verts_buffer,
+		}
 	}
 
     fn decay_turn_rates(&mut self, delta: f32) {
@@ -186,7 +391,6 @@ impl Sub {
 		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
 
-        use cgmath::{Rotation, Rotation3};
         let pitch_change_quat = cgmath::Quaternion::from_axis_angle(self.right, cgmath::Rad(pitch_change));
         let yaw_change_quat = cgmath::Quaternion::from_axis_angle(self.up, cgmath::Rad(yaw_change));
 		let roll_change_quat = cgmath::Quaternion::from_axis_angle(self.forward, cgmath::Rad(roll_change));
@@ -216,5 +420,14 @@ impl Sub {
 	pub fn process_events(&mut self, event: &winit::event::WindowEvent) -> bool {
 		self.keys.process_events(event)
     }
+}
 
+impl draw::VertBuffer for Sub {
+	fn buffer_slice(&self) -> wgpu::BufferSlice {
+		self.verts_buffer.slice(..)
+	}
+	
+	fn num_verts(&self) -> usize {
+		self.num_verts
+	}
 }

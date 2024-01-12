@@ -1,4 +1,6 @@
-use crate::{camera, chunk, consts, texture, timer, sub};
+use crate::{camera, chunk, consts, draw, texture, timer, sub};
+use crate::draw::VertBuffer;
+use wgpu::util::DeviceExt;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -38,8 +40,6 @@ pub struct State {
 impl State {
     // Creating some of the wgpu types requires async code
     pub async fn new(window: winit::window::Window) -> Self {
-        use wgpu::util::DeviceExt;
-
         let size = window.inner_size();
 
         //--------------------------------------------------------------------//
@@ -189,7 +189,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[chunk::Vert::desc()],
+                buffers: &[draw::Vert::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -205,6 +205,7 @@ impl State {
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
+                // cull_mode: None,
                 // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
                 // polygon_mode: wgpu::PolygonMode::Line,
                 polygon_mode: wgpu::PolygonMode::Fill,
@@ -285,6 +286,8 @@ impl State {
 
         //--------------------------------------------------------------------//
         let mut chunks = Vec::new();
+        // let chunk = chunk::Chunk::new([0, 0, 0], &perlin, &device);
+        // chunks.push(chunk);
 
         for x in -1..=1 {
             for y in -1..=1 {
@@ -297,7 +300,7 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let sub = sub::Sub::new();
+        let sub = sub::Sub::new(&device);
         //--------------------------------------------------------------------//
 
         Self {
@@ -397,6 +400,9 @@ impl State {
                 render_pass.set_vertex_buffer(0, chunk.buffer_slice());
                 render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }
+
+            render_pass.set_vertex_buffer(0, self.sub.buffer_slice());
+            render_pass.draw(0..self.sub.num_verts() as u32, 0..1);
             
             // render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             // render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));

@@ -1,4 +1,5 @@
 // use crate::consts;
+use cgmath::SquareMatrix;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
@@ -70,7 +71,6 @@ pub struct CameraUniform {
 }
 impl CameraUniform {
     fn new() -> Self {
-        use cgmath::SquareMatrix;
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
         }
