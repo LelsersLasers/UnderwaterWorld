@@ -21,9 +21,9 @@ const SECTOR_COUNT: usize = 20;
 const RADIUS: f32 = 1.5;
 const LENGTH: f32 = 3.0;
 const COLOR: [f32; 3] = [
-	0.27450980392,
-	0.27450980392,
-	0.31372549019,
+	0.15625,
+	0.15625,
+	0.1953125,
 ];
 
 struct Keys {
