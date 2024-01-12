@@ -1,5 +1,3 @@
-
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vert {
@@ -32,10 +30,60 @@ impl Vert {
 }
 
 pub trait VertBuffer {
-	fn buffer_slice(&self) -> wgpu::BufferSlice;
+	fn vert_buffer_slice(&self) -> wgpu::BufferSlice;
 	fn num_verts(&self) -> usize;
 }
 
+pub mod sub {
+	use cgmath::SquareMatrix;
+
+
+	#[repr(C)]
+	#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+	pub struct Instance {
+		model: [[f32; 4]; 4],
+	}
+	impl Instance {
+		pub fn identity() -> Self {
+			Self {
+				model: cgmath::Matrix4::identity().into(),
+			}
+		}
+		pub fn new(model: cgmath::Matrix4<f32>) -> Self {
+			Self {
+				model: model.into(),
+			}
+		}
+		pub fn desc() -> wgpu::VertexBufferLayout<'static> {
+			wgpu::VertexBufferLayout {
+				array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
+				step_mode: wgpu::VertexStepMode::Instance,
+				attributes: &[
+					wgpu::VertexAttribute {
+						offset: 0,
+						shader_location: 5,
+						format: wgpu::VertexFormat::Float32x4,
+					},
+					wgpu::VertexAttribute {
+						offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+						shader_location: 6,
+						format: wgpu::VertexFormat::Float32x4,
+					},
+					wgpu::VertexAttribute {
+						offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+						shader_location: 7,
+						format: wgpu::VertexFormat::Float32x4,
+					},
+					wgpu::VertexAttribute {
+						offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
+						shader_location: 8,
+						format: wgpu::VertexFormat::Float32x4,
+					},
+				],
+			}
+		}
+	}
+}
 
 
 

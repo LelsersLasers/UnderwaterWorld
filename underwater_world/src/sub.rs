@@ -1,6 +1,6 @@
 use crate::{camera, draw};
 use wgpu::util::DeviceExt;
-use cgmath::{Rotation, Rotation3};
+use cgmath::{EuclideanSpace, One, Rotation, Rotation3};
 
 const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
@@ -10,10 +10,14 @@ const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
 const TURN_DECAY: f32 = 3.0;
 
-const STACK_COUNT: usize = 8;
-const SECTOR_COUNT: usize = 8;
-const RADIUS: f32 = 2.0;
-const LENGTH: f32 = 4.0;
+const TARGET_LEAD: f32 = 8.0;
+const HORIZONTAL_OFFSET: f32 = 10.0;
+const VERTICAL_OFFSET: f32 = 12.0;
+
+const STACK_COUNT: usize = 20;
+const SECTOR_COUNT: usize = 20;
+const RADIUS: f32 = 1.5;
+const LENGTH: f32 = 3.0;
 const COLOR: [f32; 3] = [
 	0.07843137254,
 	0.07843137254,
@@ -105,6 +109,8 @@ pub struct Sub {
     forward: cgmath::Vector3<f32>,
     right: cgmath::Vector3<f32>,
 
+	overall_rotation: cgmath::Quaternion<f32>,
+
 	yaw: f32,
 	yaw_speed: f32,
 
@@ -120,67 +126,20 @@ pub struct Sub {
 
 	num_verts: usize,
 	verts_buffer: wgpu::Buffer,
-	// instance_buffer: wgpu::Buffer,
+	inst_buffer: wgpu::Buffer,
 }
 
 impl Sub {
 	pub fn new(device: &wgpu::Device) -> Self {
-
-		// for(int i = 0; i <= stackCount; ++i)
-		// {
-		// 	stackAngle = PI / 2 - i * stackStep;        // starting from pi/2 to -pi/2
-		// 	xy = radius * cosf(stackAngle);             // r * cos(u)
-		// 	z = radius * sinf(stackAngle);              // r * sin(u)
-
-		// 	// add (sectorCount+1) vertices per stack
-		// 	// first and last vertices have same position and normal, but different tex coords
-		// 	for(int j = 0; j <= sectorCount; ++j)
-		// 	{
-		// 		sectorAngle = j * sectorStep;           // starting from 0 to 2pi
-
-		// 		// vertex position (x, y, z)
-		// 		x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
-		// 		y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
-		// 		vertices.push_back(x);
-		// 		vertices.push_back(y);
-		// 		vertices.push_back(z);
-		// }
-
-		// for(int i = 0; i < stackCount; ++i)
-		// {
-		// 	k1 = i * (sectorCount + 1);     // beginning of current stack
-		// 	k2 = k1 + sectorCount + 1;      // beginning of next stack
-
-		// 	for(int j = 0; j < sectorCount; ++j, ++k1, ++k2)
-		// 	{
-		// 		// 2 triangles per sector excluding first and last stacks
-		// 		// k1 => k2 => k1+1
-		// 		if(i != 0)
-		// 		{
-		// 			indices.push_back(k1);
-		// 			indices.push_back(k2);
-		// 			indices.push_back(k1 + 1);
-		// 		}
-
-		// 		// k1+1 => k2 => k2+1
-		// 		if(i != (stackCount-1))
-		// 		{
-		// 			indices.push_back(k1 + 1);
-		// 			indices.push_back(k2);
-		// 			indices.push_back(k2 + 1);
-		// 		}
-
 		let mut verts = Vec::new();
 
-		// capsule: 2 semicircles and a cylinder
+		//--------------------------------------------------------------------//
 		let sector_step = std::f32::consts::PI * 2.0 / SECTOR_COUNT as f32;
 		let stack_step = (std::f32::consts::PI / 2.0) / STACK_COUNT as f32;
 
 		let forward_x = LENGTH / 2.0;
 		let back_x = -LENGTH / 2.0;
-
-
-		// forward semicircle
+		//--------------------------------------------------------------------//
 		let mut semicircle_verts = Vec::new();
 
 		for i in 0..=STACK_COUNT {
@@ -225,8 +184,7 @@ impl Sub {
 				verts.push(semicircle_verts[k2 + 1]);
 			}
 		}
-
-		// middle cylinder
+		//--------------------------------------------------------------------//
 		for i in 0..SECTOR_COUNT {
 			let sector_angle_left = i as f32 * sector_step;
 			let sector_angle_right = (i + 1) as f32 * sector_step;
@@ -260,7 +218,7 @@ impl Sub {
 			verts.push(draw::Vert::new(bottom_right, COLOR));
 			verts.push(draw::Vert::new(top_right, COLOR));
 		}
-		// back semicircle
+		//--------------------------------------------------------------------//
 		let mut semicircle_verts = Vec::new();
 
 		for i in 0..=STACK_COUNT {
@@ -305,6 +263,7 @@ impl Sub {
 				verts.push(semicircle_verts[k2 + 1]);
 			}
 		}
+		//--------------------------------------------------------------------//
 
 
 		let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -313,6 +272,14 @@ impl Sub {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
+		let inst = draw::sub::Instance::identity();
+		let inst_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&[inst]),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
 
 		Self {
 			pos: cgmath::Point3::new(0.0, 0.0, 0.0),
@@ -320,6 +287,8 @@ impl Sub {
             up: cgmath::Vector3::unit_z(),
             forward: cgmath::Vector3::unit_x(),
             right: cgmath::Vector3::unit_y(),
+
+			overall_rotation: cgmath::Quaternion::one(),
 
 			yaw: 0.0,
 			yaw_speed: 0.0,
@@ -336,6 +305,7 @@ impl Sub {
 
 			num_verts: verts.len(),
 			verts_buffer,
+			inst_buffer,
 		}
 	}
 
@@ -367,7 +337,7 @@ impl Sub {
 		}
     }
 
-	pub fn update(&mut self, delta: f32) {
+	pub fn update(&mut self, queue: &wgpu::Queue, delta: f32) {
 		if self.keys.w_down { self.pitch_speed -= TURN_ACCELERATION * delta; }
 		if self.keys.s_down { self.pitch_speed += TURN_ACCELERATION * delta; }
 		if self.keys.a_down { self.yaw_speed   += TURN_ACCELERATION * delta; }
@@ -396,6 +366,7 @@ impl Sub {
 		let roll_change_quat = cgmath::Quaternion::from_axis_angle(self.forward, cgmath::Rad(roll_change));
 
 		let overall_change_quat = yaw_change_quat * pitch_change_quat * roll_change_quat;
+		self.overall_rotation = overall_change_quat * self.overall_rotation;
 
 		self.forward = overall_change_quat.rotate_vector(self.forward);
 		self.up = overall_change_quat.rotate_vector(self.up);
@@ -407,11 +378,22 @@ impl Sub {
 
         self.pos += self.forward * self.speed * delta;
         self.target = self.pos + self.forward * self.speed;
+
+		let inst_mat = cgmath::Matrix4::from_translation(self.pos.to_vec()) * cgmath::Matrix4::from(self.overall_rotation);
+		let inst = draw::sub::Instance::new(inst_mat);
+		queue.write_buffer(&self.inst_buffer, 0, bytemuck::cast_slice(&[inst]));
 	}
 
 	pub fn update_camera(&self, camera: &mut camera::Camera) {
-		camera.set_eye(self.pos);
-		camera.set_target(self.target);
+
+		let camera_eye_pos = self.pos - self.forward * HORIZONTAL_OFFSET + self.up * VERTICAL_OFFSET;
+		let camera_target_pos = self.pos + self.forward * TARGET_LEAD;
+
+		camera.set_eye(camera_eye_pos);
+		camera.set_target(camera_target_pos);
+
+		// camera.set_eye(self.pos);
+		// camera.set_target(self.target);
         camera.set_up(self.up);
 		
 		camera.update_uniform();
@@ -420,10 +402,14 @@ impl Sub {
 	pub fn process_events(&mut self, event: &winit::event::WindowEvent) -> bool {
 		self.keys.process_events(event)
     }
+
+	pub fn inst_buffer_slice(&self) -> wgpu::BufferSlice {
+		self.inst_buffer.slice(..)
+	}
 }
 
 impl draw::VertBuffer for Sub {
-	fn buffer_slice(&self) -> wgpu::BufferSlice {
+	fn vert_buffer_slice(&self) -> wgpu::BufferSlice {
 		self.verts_buffer.slice(..)
 	}
 	

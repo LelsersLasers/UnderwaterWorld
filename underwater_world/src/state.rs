@@ -9,7 +9,8 @@ pub struct State {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
 
-    render_pipeline: wgpu::RenderPipeline,
+    terrain_render_pipeline: wgpu::RenderPipeline,
+    sub_render_pipeline: wgpu::RenderPipeline,
 
     // vertex_buffer: wgpu::Buffer,
     // index_buffer: wgpu::Buffer,
@@ -172,7 +173,8 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
+        let terrain_shader = device.create_shader_module(wgpu::include_wgsl!("terrain.wgsl"));
+        let sub_shader = device.create_shader_module(wgpu::include_wgsl!("sub.wgsl"));
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -182,17 +184,16 @@ impl State {
                 ],
                 push_constant_ranges: &[],
             });
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
+        let terrain_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Terrain Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
+                module: &terrain_shader,
                 entry_point: "vs_main",
                 buffers: &[draw::Vert::desc()],
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
+                module: &terrain_shader,
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
@@ -205,7 +206,48 @@ impl State {
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
-                // cull_mode: None,
+                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
+                // polygon_mode: wgpu::PolygonMode::Line,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: texture::Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1, 
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+        });
+        let sub_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Sub Render Pipeline"),
+            layout: Some(&render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &sub_shader,
+                entry_point: "vs_main",
+                buffers: &[draw::Vert::desc(), draw::sub::Instance::desc()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &sub_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
                 // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
                 // polygon_mode: wgpu::PolygonMode::Line,
                 polygon_mode: wgpu::PolygonMode::Fill,
@@ -310,7 +352,8 @@ impl State {
             queue,
             config,
             size,
-            render_pipeline,
+            terrain_render_pipeline,
+            sub_render_pipeline,
             // vertex_buffer,
             // index_buffer,
             // instances,
@@ -346,7 +389,7 @@ impl State {
         let delta = self.fps_counter.update();
         println!("FPS: {:5.0}", self.fps_counter.fps());
 
-        self.sub.update(delta as f32);
+        self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera);
 
         // self.camera.update(delta);
@@ -392,16 +435,19 @@ impl State {
             });
 
 
-            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_pipeline(&self.terrain_render_pipeline);
 
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
 
             for chunk in self.chunks.iter() {
-                render_pass.set_vertex_buffer(0, chunk.buffer_slice());
+                render_pass.set_vertex_buffer(0, chunk.vert_buffer_slice());
                 render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }
 
-            render_pass.set_vertex_buffer(0, self.sub.buffer_slice());
+            render_pass.set_pipeline(&self.sub_render_pipeline);
+
+            render_pass.set_vertex_buffer(0, self.sub.vert_buffer_slice());
+            render_pass.set_vertex_buffer(1, self.sub.inst_buffer_slice());
             render_pass.draw(0..self.sub.num_verts() as u32, 0..1);
             
             // render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

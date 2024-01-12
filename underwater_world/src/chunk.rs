@@ -132,7 +132,7 @@ impl Chunk {
 }
 
 impl draw::VertBuffer for Chunk {
-	fn buffer_slice(&self) -> wgpu::BufferSlice {
+	fn vert_buffer_slice(&self) -> wgpu::BufferSlice {
 		self.verts_buffer.slice(..)
 	}
 	
