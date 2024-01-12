@@ -11,9 +11,9 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
 
 
 pub struct Camera {
-    eye: cgmath::Point3<f32>,
-    target: cgmath::Point3<f32>,
-    up: cgmath::Vector3<f32>,
+    pub eye: cgmath::Point3<f32>,
+    pub target: cgmath::Point3<f32>,
+    pub up: cgmath::Vector3<f32>,
     aspect: f32,
     fovy: f32,
     znear: f32,
@@ -49,18 +49,6 @@ impl Camera {
     pub fn update_uniform(&mut self) {
         self.uniform.view_proj =
             (OPENGL_TO_WGPU_MATRIX * self.build_view_projection_matrix()).into();
-    }
-
-    pub fn set_eye(&mut self, eye: cgmath::Point3<f32>) {
-        self.eye = eye;
-    }
-
-    pub fn set_target(&mut self, target: cgmath::Point3<f32>) {
-        self.target = target;
-    }
-
-    pub fn set_up(&mut self, up: cgmath::Vector3<f32>) {
-        self.up = up;
     }
 }
 

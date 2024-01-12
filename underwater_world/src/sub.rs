@@ -6,13 +6,15 @@ const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
 const ACCELERATION: f32 = 5.0;
 
-const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
+const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 4.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
 const TURN_DECAY: f32 = 3.0;
 
-const TARGET_LEAD: f32 = 8.0;
-const HORIZONTAL_OFFSET: f32 = 10.0;
-const VERTICAL_OFFSET: f32 = 12.0;
+const TARGET_LEAD: f32 = 6.0;
+const HORIZONTAL_OFFSET: f32 = 8.0;
+const VERTICAL_OFFSET: f32 = 10.0;
+
+const CAMERA_FOLLOW_SPEED: f32 = 0.99;
 
 const STACK_COUNT: usize = 20;
 const SECTOR_COUNT: usize = 20;
@@ -384,17 +386,20 @@ impl Sub {
 		queue.write_buffer(&self.inst_buffer, 0, bytemuck::cast_slice(&[inst]));
 	}
 
-	pub fn update_camera(&self, camera: &mut camera::Camera) {
+	pub fn update_camera(&self, camera: &mut camera::Camera, delta: f32) {
+		let eye_goal = self.pos - self.forward * HORIZONTAL_OFFSET + self.up * VERTICAL_OFFSET;
+		let eye_diff = eye_goal - camera.eye;
+		let eye_move = eye_diff * delta * CAMERA_FOLLOW_SPEED;
+		camera.eye += eye_move;
 
-		let camera_eye_pos = self.pos - self.forward * HORIZONTAL_OFFSET + self.up * VERTICAL_OFFSET;
-		let camera_target_pos = self.pos + self.forward * TARGET_LEAD;
+		let target_goal = self.pos + self.forward * TARGET_LEAD;
+		let target_diff = target_goal - camera.target;
+		let target_move = target_diff * delta * CAMERA_FOLLOW_SPEED;
+		camera.target += target_move;
 
-		camera.set_eye(camera_eye_pos);
-		camera.set_target(camera_target_pos);
-
-		// camera.set_eye(self.pos);
-		// camera.set_target(self.target);
-        camera.set_up(self.up);
+		let up_diff = self.up - camera.up;
+		let up_move = up_diff * delta * CAMERA_FOLLOW_SPEED;
+		camera.up += up_move;
 		
 		camera.update_uniform();
 	}

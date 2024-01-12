@@ -390,7 +390,7 @@ impl State {
         println!("FPS: {:5.0}", self.fps_counter.fps());
 
         self.sub.update(&self.queue, delta as f32);
-        self.sub.update_camera(&mut self.camera);
+        self.sub.update_camera(&mut self.camera, delta as f32);
 
         // self.camera.update(delta);
 
