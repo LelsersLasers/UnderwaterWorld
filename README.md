@@ -6,7 +6,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 - Submarine
     - Render
-        - Capsule + turny thing
+        - Turny thing
     - Camera offset
         - Position and angle
 - Dynamic chunk loading
