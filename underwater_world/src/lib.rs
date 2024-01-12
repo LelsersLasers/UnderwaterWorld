@@ -4,6 +4,7 @@ mod consts;
 mod draw;
 mod marching_table;
 mod state;
+mod sub;
 mod texture;
 mod timer;
 

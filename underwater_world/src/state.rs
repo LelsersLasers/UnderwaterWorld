@@ -1,4 +1,4 @@
-use crate::{camera, chunk, consts, texture, timer};
+use crate::{camera, chunk, consts, texture, timer, sub};
 
 pub struct State {
     surface: wgpu::Surface,
@@ -26,6 +26,8 @@ pub struct State {
     perlin: noise::Perlin,
 
     chunks: Vec<chunk::Chunk>,
+
+    sub: sub::Sub,
 
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
@@ -119,7 +121,7 @@ impl State {
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: wgpu::PresentMode::AutoNoVsync,
+            present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };
@@ -294,6 +296,10 @@ impl State {
         }
         //--------------------------------------------------------------------//
 
+        //--------------------------------------------------------------------//
+        let sub = sub::Sub::new();
+        //--------------------------------------------------------------------//
+
         Self {
             window,
             surface,
@@ -313,6 +319,7 @@ impl State {
             fps_counter,
             perlin,
             chunks,
+            sub,
         }
     }
 
@@ -328,14 +335,18 @@ impl State {
     }
 
     pub fn input(&mut self, event: &winit::event::WindowEvent) -> bool {
-        self.camera.process_events(event)
+        // self.camera.process_events(event)
+        self.sub.process_events(event)
     }
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
         println!("FPS: {:5.0}", self.fps_counter.fps());
 
-        self.camera.update(delta);
+        self.sub.update(delta as f32);
+        self.sub.update_camera(&mut self.camera);
+
+        // self.camera.update(delta);
 
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }
