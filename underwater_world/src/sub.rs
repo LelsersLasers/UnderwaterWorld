@@ -21,8 +21,10 @@ struct Keys {
 pub struct Sub {
 	pos: cgmath::Point3<f32>,
 	target: cgmath::Point3<f32>,
+
     up: cgmath::Vector3<f32>,
-    // forward: cgmath::Vector3<f32>,
+    forward: cgmath::Vector3<f32>,
+    right: cgmath::Vector3<f32>,
 
 	yaw: f32,
 	yaw_speed: f32,
@@ -41,7 +43,8 @@ impl Sub {
 			pos: cgmath::Point3::new(0.0, 0.0, 0.0),
 			target: cgmath::Point3::new(1.0, 0.0, 0.0),
             up: cgmath::Vector3::unit_z(),
-            // forward: cgmath::Vector3::unit_x(),
+            forward: cgmath::Vector3::unit_x(),
+            right: cgmath::Vector3::unit_y(),
 
 			yaw: 0.0,
 			yaw_speed: 0.0,
@@ -94,26 +97,25 @@ impl Sub {
 
 		self.decay_turn_rates(delta);
 
-		self.pitch += self.pitch_speed * delta;
-		self.yaw += self.yaw_speed * delta;
+        let pitch_change = self.pitch_speed * delta;
+		self.pitch += pitch_change;
 
-        println!("pitch: {}, yaw: {}", self.pitch, self.yaw);
+        let yaw_change = self.yaw_speed * delta;
+		self.yaw += yaw_change;
 
 		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
 
         use cgmath::{Rotation, Rotation3};
-        let base_forward = cgmath::Vector3::unit_x();
-        let base_up = cgmath::Vector3::unit_z();
+        let pitch_change_quat = cgmath::Quaternion::from_axis_angle(self.right, cgmath::Rad(pitch_change));
+        let yaw_change_quat = cgmath::Quaternion::from_axis_angle(self.up, cgmath::Rad(yaw_change));
+        
+        self.forward = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.forward));
+        self.up = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.up));
+        self.right = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.right));
 
-        let pitch_quat = cgmath::Quaternion::from_angle_y(cgmath::Rad(self.pitch));
-        let yaw_quat = cgmath::Quaternion::from_angle_z(cgmath::Rad(self.yaw));
-        let forward = yaw_quat.rotate_vector(pitch_quat.rotate_vector(base_forward));
-        let up = yaw_quat.rotate_vector(pitch_quat.rotate_vector(base_up));
-
-		self.target = self.pos + forward * self.speed;
-		self.pos += forward * self.speed * delta;
-        self.up = up;
+        self.target = self.pos + self.forward * self.speed;
+        self.pos += self.forward * self.speed * delta;
 	}
 
 	pub fn update_camera(&self, camera: &mut camera::Camera) {
