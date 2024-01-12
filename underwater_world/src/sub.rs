@@ -6,12 +6,12 @@ const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
 const ACCELERATION: f32 = 5.0;
 
-const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 4.0;
+const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
 const TURN_DECAY: f32 = 3.0;
 
-const TARGET_LEAD: f32 = 6.0;
-const HORIZONTAL_OFFSET: f32 = 8.0;
+const TARGET_LEAD: f32 = 10.0;
+const HORIZONTAL_OFFSET: f32 = 4.0;
 const VERTICAL_OFFSET: f32 = 10.0;
 
 const CAMERA_FOLLOW_SPEED: f32 = 0.99;
@@ -21,9 +21,9 @@ const SECTOR_COUNT: usize = 20;
 const RADIUS: f32 = 1.5;
 const LENGTH: f32 = 3.0;
 const COLOR: [f32; 3] = [
-	0.07843137254,
-	0.07843137254,
-	0.09019607843,
+	0.27450980392,
+	0.27450980392,
+	0.31372549019,
 ];
 
 struct Keys {
@@ -149,24 +149,13 @@ impl Sub {
 			let xy = RADIUS * stack_angle.cos();
 			let z = RADIUS * stack_angle.sin();
 
-			let color_z = stack_angle.sin();
-
 			for j in 0..=SECTOR_COUNT {
 				let sector_angle = j as f32 * sector_step;
 
 				let x = xy * sector_angle.cos();
 				let y = xy * sector_angle.sin();
 
-				let color_x = sector_angle.cos();
-				let color_y = sector_angle.sin();
-
-				let color = [
-					color_x,
-					color_y,
-					color_z,
-				];
-
-				semicircle_verts.push(draw::Vert::new([z + forward_x, y, x], color));
+				semicircle_verts.push(draw::Vert::new([z + forward_x, y, x], COLOR));
 			}
 		}
 		for i in 0..STACK_COUNT {
@@ -228,24 +217,13 @@ impl Sub {
 			let xy = RADIUS * stack_angle.cos();
 			let z = RADIUS * stack_angle.sin();
 
-			let color_z = stack_angle.sin();
-
 			for j in 0..=SECTOR_COUNT {
 				let sector_angle = j as f32 * sector_step;
 
 				let x = xy * sector_angle.cos();
 				let y = xy * sector_angle.sin();
 
-				let color_x = sector_angle.cos();
-				let color_y = sector_angle.sin();
-
-				let color = [
-					color_x,
-					color_y,
-					color_z,
-				];
-
-				semicircle_verts.push(draw::Vert::new([-(z + forward_x), y, x], color));
+				semicircle_verts.push(draw::Vert::new([-(z + forward_x), y, x], COLOR));
 			}
 		}
 		for i in 0..STACK_COUNT {
