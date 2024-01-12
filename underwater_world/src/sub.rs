@@ -4,7 +4,7 @@ const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 3.0;
 const ACCELERATION: f32 = 5.0;
 
-const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 4.0;
+const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
 const TURN_DECAY: f32 = 3.0;
 
@@ -21,6 +21,8 @@ struct Keys {
 pub struct Sub {
 	pos: cgmath::Point3<f32>,
 	target: cgmath::Point3<f32>,
+    up: cgmath::Vector3<f32>,
+    // forward: cgmath::Vector3<f32>,
 
 	yaw: f32,
 	yaw_speed: f32,
@@ -38,6 +40,8 @@ impl Sub {
 		let mut sub = Self {
 			pos: cgmath::Point3::new(0.0, 0.0, 0.0),
 			target: cgmath::Point3::new(1.0, 0.0, 0.0),
+            up: cgmath::Vector3::unit_z(),
+            // forward: cgmath::Vector3::unit_x(),
 
 			yaw: 0.0,
 			yaw_speed: 0.0,
@@ -60,59 +64,62 @@ impl Sub {
 		sub
 	}
 
-	fn calc_forward(&self) -> cgmath::Vector3<f32> {
-		let yaw_sin = self.yaw.sin();
-		let yaw_cos = self.yaw.cos();
+    fn decay_turn_rates(&mut self, delta: f32) {
+        let min_turn_decay = TURN_DECAY * MAX_TURN_SPEED * delta;
 
-		let pitch_sin = self.pitch.sin();
-		let pitch_cos = self.pitch.cos();
+        if self.keys.w_down || self.keys.s_down {
+			self.pitch_speed = self.pitch_speed.clamp(-MAX_TURN_SPEED, MAX_TURN_SPEED);
+		} else if self.pitch_speed.abs() < min_turn_decay {
+			self.pitch_speed = 0.0;
+		} else {
+			self.pitch_speed -= min_turn_decay * self.pitch_speed.signum();
+		}
 
-		cgmath::Vector3::new(
-			yaw_cos * pitch_cos,
-			yaw_sin * pitch_cos,
-			pitch_sin,
-		)
-	}
+        if self.keys.a_down || self.keys.d_down {
+			self.yaw_speed = self.yaw_speed.clamp(-MAX_TURN_SPEED, MAX_TURN_SPEED);
+		} else if self.yaw_speed.abs() < min_turn_decay {
+			self.yaw_speed = 0.0;
+		} else {
+			self.yaw_speed -= min_turn_decay * self.yaw_speed.signum();
+		}
+    }
 
 	pub fn update(&mut self, delta: f32) {
-		if self.keys.w_down { self.pitch_speed += TURN_ACCELERATION * delta; }
-		if self.keys.s_down { self.pitch_speed -= TURN_ACCELERATION * delta; }
+		if self.keys.w_down { self.pitch_speed -= TURN_ACCELERATION * delta; }
+		if self.keys.s_down { self.pitch_speed += TURN_ACCELERATION * delta; }
 		if self.keys.a_down { self.yaw_speed   += TURN_ACCELERATION * delta; }
 		if self.keys.d_down { self.yaw_speed   -= TURN_ACCELERATION * delta; }
 		if self.keys.q_down { self.speed       += ACCELERATION * delta; }
 		if self.keys.e_down { self.speed       -= ACCELERATION * delta; }
 
-		if self.keys.w_down || self.keys.s_down {
-			self.pitch_speed = self.pitch_speed.clamp(-MAX_TURN_SPEED, MAX_TURN_SPEED);
-		} else if self.pitch_speed.abs() < TURN_DECAY * MAX_TURN_SPEED * delta {
-			self.pitch_speed = 0.0;
-		} else {
-			self.pitch_speed -= TURN_DECAY * MAX_TURN_SPEED * delta * self.pitch_speed.signum();
-		}
-		self.pitch += self.pitch_speed * delta;
+		self.decay_turn_rates(delta);
 
-		if self.keys.a_down || self.keys.d_down {
-			self.yaw_speed = self.yaw_speed.clamp(-MAX_TURN_SPEED, MAX_TURN_SPEED);
-			// println!("yaw_speed: {}", self.yaw_speed);
-		} else if self.yaw_speed.abs() < TURN_DECAY * MAX_TURN_SPEED * delta {
-			self.yaw_speed = 0.0;
-		} else {
-			self.yaw_speed -= TURN_DECAY * MAX_TURN_SPEED * delta * self.yaw_speed.signum();
-		}
+		self.pitch += self.pitch_speed * delta;
 		self.yaw += self.yaw_speed * delta;
 
-		self.pitch = self.pitch.clamp(-std::f32::consts::PI / 2.0 + 0.01, std::f32::consts::PI / 2.0 - 0.01);
+        println!("pitch: {}, yaw: {}", self.pitch, self.yaw);
+
 		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
-		let forward = self.calc_forward();
-		self.target = self.pos + forward * self.speed;
 
+        use cgmath::{Rotation, Rotation3};
+        let base_forward = cgmath::Vector3::unit_x();
+        let base_up = cgmath::Vector3::unit_z();
+
+        let pitch_quat = cgmath::Quaternion::from_angle_y(cgmath::Rad(self.pitch));
+        let yaw_quat = cgmath::Quaternion::from_angle_z(cgmath::Rad(self.yaw));
+        let forward = yaw_quat.rotate_vector(pitch_quat.rotate_vector(base_forward));
+        let up = yaw_quat.rotate_vector(pitch_quat.rotate_vector(base_up));
+
+		self.target = self.pos + forward * self.speed;
 		self.pos += forward * self.speed * delta;
+        self.up = up;
 	}
 
 	pub fn update_camera(&self, camera: &mut camera::Camera) {
 		camera.set_eye(self.pos);
 		camera.set_target(self.target);
+        camera.set_up(self.up);
 		
 		camera.update_uniform();
 	}

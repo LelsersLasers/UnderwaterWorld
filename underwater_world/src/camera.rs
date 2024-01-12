@@ -22,7 +22,7 @@ pub struct Camera {
 }
 impl Camera {
     pub fn new(config: &wgpu::SurfaceConfiguration) -> Self {
-        let mut camera = Camera {
+        Self {
             eye: (1., 1., 1.).into(),
             target: (0., 0., 0.).into(),
             up: cgmath::Vector3::unit_z(),
@@ -32,9 +32,7 @@ impl Camera {
             zfar: 100.,
 
             uniform: CameraUniform::new(),
-        };
-        camera.update_uniform();
-        camera
+        }
     }
 
     pub fn uniform(&self) -> &CameraUniform {
@@ -58,6 +56,10 @@ impl Camera {
 
     pub fn set_target(&mut self, target: cgmath::Point3<f32>) {
         self.target = target;
+    }
+
+    pub fn set_up(&mut self, up: cgmath::Vector3<f32>) {
+        self.up = up;
     }
 }
 
