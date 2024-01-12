@@ -1,7 +1,7 @@
 use crate::camera;
 
 const MIN_SPEED: f32 = 0.5;
-const MAX_SPEED: f32 = 3.0;
+const MAX_SPEED: f32 = 7.5;
 const ACCELERATION: f32 = 5.0;
 
 const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
@@ -16,6 +16,74 @@ struct Keys {
 	d_down: bool,
 	q_down: bool,
 	e_down: bool,
+	space_down: bool,
+	control_down: bool,
+}
+impl Keys {
+	fn new() -> Self {
+		Self {
+			w_down: false,
+			s_down: false,
+			a_down: false,
+			d_down: false,
+			q_down: false,
+			e_down: false,
+			space_down: false,
+			control_down: false,
+		}
+	}
+
+	fn process_events(&mut self, event: &winit::event::WindowEvent) -> bool {
+        match event {
+            winit::event::WindowEvent::KeyboardInput {
+                input:
+                winit::event::KeyboardInput {
+                        state,
+                        virtual_keycode: Some(keycode),
+                        ..
+                    },
+                ..
+            } => {
+                let pressed = *state == winit::event::ElementState::Pressed;
+                match keycode {
+                    winit::event::VirtualKeyCode::W | winit::event::VirtualKeyCode::Up => {
+                        self.w_down = pressed;
+                        true
+                    }
+                    winit::event::VirtualKeyCode::S | winit::event::VirtualKeyCode::Down => {
+                        self.s_down = pressed;
+                        true
+                    }
+                    winit::event::VirtualKeyCode::A | winit::event::VirtualKeyCode::Left => {
+                        self.a_down = pressed;
+                        true
+                    }
+                    winit::event::VirtualKeyCode::D | winit::event::VirtualKeyCode::Right => {
+                        self.d_down = pressed;
+                        true
+                    }
+                    winit::event::VirtualKeyCode::Q | winit::event::VirtualKeyCode::PageUp => {
+                        self.q_down = pressed;
+                        true
+                    }
+                    winit::event::VirtualKeyCode::E | winit::event::VirtualKeyCode::PageDown => {
+                        self.e_down = pressed;
+                        true
+                    }
+					winit::event::VirtualKeyCode::Space => {
+						self.space_down = pressed;
+						true
+					}
+					winit::event::VirtualKeyCode::LControl | winit::event::VirtualKeyCode::RControl => {
+						self.control_down = pressed;
+						true
+					}
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
+	}
 }
 
 pub struct Sub {
@@ -31,6 +99,9 @@ pub struct Sub {
 
 	pitch: f32,
 	pitch_speed: f32,
+
+	roll: f32,
+	roll_speed: f32,
 
 	speed: f32,
 
@@ -51,17 +122,13 @@ impl Sub {
 
 			pitch: 0.0,
 			pitch_speed: 0.0,
-			
-			speed: 1.5,
 
-			keys: Keys {
-				w_down: false,
-				s_down: false,
-				a_down: false,
-				d_down: false,
-				q_down: false,
-				e_down: false,
-			},
+			roll: 0.0,
+			roll_speed: 0.0,
+			
+			speed: 4.0,
+
+			keys: Keys::new(),
 		};
 		sub.update(0.0);
 		sub
@@ -85,6 +152,14 @@ impl Sub {
 		} else {
 			self.yaw_speed -= min_turn_decay * self.yaw_speed.signum();
 		}
+
+		if self.keys.q_down || self.keys.e_down {
+			self.roll_speed = self.roll_speed.clamp(-MAX_TURN_SPEED, MAX_TURN_SPEED);
+		} else if self.roll_speed.abs() < min_turn_decay {
+			self.roll_speed = 0.0;
+		} else {
+			self.roll_speed -= min_turn_decay * self.roll_speed.signum();
+		}
     }
 
 	pub fn update(&mut self, delta: f32) {
@@ -92,8 +167,10 @@ impl Sub {
 		if self.keys.s_down { self.pitch_speed += TURN_ACCELERATION * delta; }
 		if self.keys.a_down { self.yaw_speed   += TURN_ACCELERATION * delta; }
 		if self.keys.d_down { self.yaw_speed   -= TURN_ACCELERATION * delta; }
-		if self.keys.q_down { self.speed       += ACCELERATION * delta; }
-		if self.keys.e_down { self.speed       -= ACCELERATION * delta; }
+		if self.keys.q_down { self.roll_speed  -= TURN_ACCELERATION * delta; }
+		if self.keys.e_down { self.roll_speed  += TURN_ACCELERATION * delta; }
+		if self.keys.space_down { self.speed   += ACCELERATION * delta; }
+		if self.keys.control_down { self.speed -= ACCELERATION * delta; }
 
 		self.decay_turn_rates(delta);
 
@@ -103,19 +180,29 @@ impl Sub {
         let yaw_change = self.yaw_speed * delta;
 		self.yaw += yaw_change;
 
+		let roll_change = self.roll_speed * delta;
+		self.roll += roll_change;
+
 		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
 
         use cgmath::{Rotation, Rotation3};
         let pitch_change_quat = cgmath::Quaternion::from_axis_angle(self.right, cgmath::Rad(pitch_change));
         let yaw_change_quat = cgmath::Quaternion::from_axis_angle(self.up, cgmath::Rad(yaw_change));
-        
-        self.forward = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.forward));
-        self.up = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.up));
-        self.right = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.right));
+		let roll_change_quat = cgmath::Quaternion::from_axis_angle(self.forward, cgmath::Rad(roll_change));
 
-        self.target = self.pos + self.forward * self.speed;
+		let overall_change_quat = yaw_change_quat * pitch_change_quat * roll_change_quat;
+
+		self.forward = overall_change_quat.rotate_vector(self.forward);
+		self.up = overall_change_quat.rotate_vector(self.up);
+		self.right = overall_change_quat.rotate_vector(self.right);
+        
+        // self.forward = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.forward));
+        // self.up = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.up));
+        // self.right = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.right));
+
         self.pos += self.forward * self.speed * delta;
+        self.target = self.pos + self.forward * self.speed;
 	}
 
 	pub fn update_camera(&self, camera: &mut camera::Camera) {
@@ -127,47 +214,7 @@ impl Sub {
 	}
 
 	pub fn process_events(&mut self, event: &winit::event::WindowEvent) -> bool {
-        match event {
-            winit::event::WindowEvent::KeyboardInput {
-                input:
-                winit::event::KeyboardInput {
-                        state,
-                        virtual_keycode: Some(keycode),
-                        ..
-                    },
-                ..
-            } => {
-                let pressed = *state == winit::event::ElementState::Pressed;
-                match keycode {
-                    winit::event::VirtualKeyCode::W | winit::event::VirtualKeyCode::Up => {
-                        self.keys.w_down = pressed;
-                        true
-                    }
-                    winit::event::VirtualKeyCode::S | winit::event::VirtualKeyCode::Down => {
-                        self.keys.s_down = pressed;
-                        true
-                    }
-                    winit::event::VirtualKeyCode::A | winit::event::VirtualKeyCode::Left => {
-                        self.keys.a_down = pressed;
-                        true
-                    }
-                    winit::event::VirtualKeyCode::D | winit::event::VirtualKeyCode::Right => {
-                        self.keys.d_down = pressed;
-                        true
-                    }
-                    winit::event::VirtualKeyCode::Q | winit::event::VirtualKeyCode::PageUp => {
-                        self.keys.q_down = pressed;
-                        true
-                    }
-                    winit::event::VirtualKeyCode::E | winit::event::VirtualKeyCode::PageDown => {
-                        self.keys.e_down = pressed;
-                        true
-                    }
-                    _ => false,
-                }
-            }
-            _ => false,
-        }
+		self.keys.process_events(event)
     }
 
 }
