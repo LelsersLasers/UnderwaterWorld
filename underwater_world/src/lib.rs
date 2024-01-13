@@ -5,6 +5,7 @@ mod draw;
 mod marching_table;
 mod state;
 mod sub;
+mod sub_obj;
 mod texture;
 mod timer;
 

@@ -1,5 +1,4 @@
 use crate::{camera, chunk, consts, draw, texture, timer, sub};
-use crate::draw::VertBuffer;
 use wgpu::util::DeviceExt;
 
 pub struct State {
@@ -392,8 +391,6 @@ impl State {
         self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);
 
-        // self.camera.update(delta);
-
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }
 
@@ -448,13 +445,8 @@ impl State {
 
             render_pass.set_vertex_buffer(0, self.sub.vert_buffer_slice());
             render_pass.set_vertex_buffer(1, self.sub.inst_buffer_slice());
-            render_pass.draw(0..self.sub.num_verts() as u32, 0..1);
-            
-            // render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            // render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-            // render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
-            // render_pass.draw_indexed(0..draw::INDICES.len() as u32, 0, 0..self.instances.len() as _);
+            render_pass.set_index_buffer(self.sub.index_buffer_slice(), wgpu::IndexFormat::Uint32);
+            render_pass.draw_indexed(0..self.sub.num_indices() as u32, 0, 0..1);
         }
         //--------------------------------------------------------------------//
 

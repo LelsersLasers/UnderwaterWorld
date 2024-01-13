@@ -1,7 +1,7 @@
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vert {
-	pos: [f32; 3],
+	pub pos: [f32; 3],
 	color: [f32; 3],
 }
 impl Vert {
@@ -27,11 +27,6 @@ impl Vert {
             ]
         }
     }
-}
-
-pub trait VertBuffer {
-	fn vert_buffer_slice(&self) -> wgpu::BufferSlice;
-	fn num_verts(&self) -> usize;
 }
 
 pub mod sub {

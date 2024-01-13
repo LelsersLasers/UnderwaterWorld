@@ -1,4 +1,4 @@
-use crate::{camera, draw};
+use crate::{camera, draw, sub_obj};
 use wgpu::util::DeviceExt;
 use cgmath::{EuclideanSpace, One, Rotation, Rotation3};
 
@@ -10,18 +10,14 @@ const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
 const TURN_DECAY: f32 = 3.0;
 
-const TARGET_LEAD: f32 = 10.0;
-const HORIZONTAL_OFFSET: f32 = 4.0;
-const VERTICAL_OFFSET: f32 = 10.0;
+const TARGET_DOWN: f32 = 0.6;
+const HORIZONTAL_OFFSET: f32 = 7.0;
+const VERTICAL_OFFSET: f32 = 6.0;
 
-const CAMERA_FOLLOW_SPEED: f32 = 0.99;
+const SUB_MODEL_SCALE: f32 = 8.0;
 
-const STACK_COUNT: usize = 20;
-const SECTOR_COUNT: usize = 20;
-const RADIUS: f32 = 1.5;
-const LENGTH: f32 = 3.0;
-const PROP_WIDTH: f32 = 0.5;
-const PROP_THICKNESS: f32 = 0.2;
+const CAMERA_FOLLOW_SPEED: f32 = 20.0;
+
 const COLOR: [f32; 3] = [
 	0.15625,
 	0.15625,
@@ -128,140 +124,59 @@ pub struct Sub {
 
 	keys: Keys,
 
-	num_verts: usize,
 	verts_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
 	inst_buffer: wgpu::Buffer,
+
+    num_indices: usize,
 }
 
 impl Sub {
 	pub fn new(device: &wgpu::Device) -> Self {
 		let mut verts = Vec::new();
+        let mut indices = Vec::new();
 
-		//--------------------------------------------------------------------//
-		let sector_step = std::f32::consts::PI * 2.0 / SECTOR_COUNT as f32;
-		let stack_step = (std::f32::consts::PI / 2.0) / STACK_COUNT as f32;
+        let mut highest_v: f32 = 0.0;
 
-		let forward_x = LENGTH / 2.0;
-		let back_x = -LENGTH / 2.0;
-		//--------------------------------------------------------------------//
-		let mut semicircle_verts = Vec::new();
+        for line in sub_obj::SUB_OBJ.lines() {
+            let mut split = line.split_whitespace();
+            let first = split.next();
+            match first {
+                Some("v") => {
+                    let x: f32 = split.next().unwrap().parse().unwrap();
+                    let y: f32 = split.next().unwrap().parse().unwrap();
+                    let z: f32 = split.next().unwrap().parse().unwrap();
+                    verts.push(draw::Vert::new([x, y, z], COLOR));
 
-		for i in 0..=STACK_COUNT {
-			let stack_angle = std::f32::consts::PI / 2.0 - i as f32 * stack_step;
-			let xy = RADIUS * stack_angle.cos();
-			let z = RADIUS * stack_angle.sin();
+                    highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
+                }
+                Some("f") => {
+                    for _ in 0..3 {
+                        let i = split.next().unwrap().split("//").next().unwrap().parse::<u32>().unwrap() - 1;
+                        indices.push(i);
+                    }
+                }
+                _ => {}
+            }
+        }
 
-			for j in 0..=SECTOR_COUNT {
-				let sector_angle = j as f32 * sector_step;
-
-				let x = xy * sector_angle.cos();
-				let y = xy * sector_angle.sin();
-
-				semicircle_verts.push(draw::Vert::new([z + forward_x, y, x], COLOR));
-			}
-		}
-		for i in 0..STACK_COUNT {
-			let k1 = i * (SECTOR_COUNT + 1);
-			let k2 = k1 + SECTOR_COUNT + 1;
-
-			for j in 0..SECTOR_COUNT {
-				let k1 = k1 + j;
-				let k2 = k2 + j;
-
-				verts.push(semicircle_verts[k1]);
-				verts.push(semicircle_verts[k2]);
-				verts.push(semicircle_verts[k1 + 1]);
-
-				verts.push(semicircle_verts[k1 + 1]);
-				verts.push(semicircle_verts[k2]);
-				verts.push(semicircle_verts[k2 + 1]);
-			}
-		}
-		//--------------------------------------------------------------------//
-		for i in 0..SECTOR_COUNT {
-			let sector_angle_left = i as f32 * sector_step;
-			let sector_angle_right = (i + 1) as f32 * sector_step;
-
-			let top_left = [
-				forward_x,
-				RADIUS * sector_angle_left.cos(),
-				RADIUS * sector_angle_left.sin(),
-			];
-			let top_right = [
-				forward_x,
-				RADIUS * sector_angle_right.cos(),
-				RADIUS * sector_angle_right.sin(),
-			];
-			let bottom_left = [
-				back_x,
-				RADIUS * sector_angle_left.cos(),
-				RADIUS * sector_angle_left.sin(),
-			];
-			let bottom_right = [
-				back_x,
-				RADIUS * sector_angle_right.cos(),
-				RADIUS * sector_angle_right.sin(),
-			];
-
-			verts.push(draw::Vert::new(top_left, COLOR));
-			verts.push(draw::Vert::new(bottom_left, COLOR));
-			verts.push(draw::Vert::new(top_right, COLOR));
-
-			verts.push(draw::Vert::new(bottom_left, COLOR));
-			verts.push(draw::Vert::new(bottom_right, COLOR));
-			verts.push(draw::Vert::new(top_right, COLOR));
-		}
-		//--------------------------------------------------------------------//
-		let mut semicircle_verts = Vec::new();
-
-		for i in 0..=STACK_COUNT {
-			let stack_angle = std::f32::consts::PI / 2.0 - i as f32 * stack_step;
-			let xy = RADIUS * stack_angle.cos();
-			let z = RADIUS * stack_angle.sin();
-
-			for j in 0..=SECTOR_COUNT {
-				let sector_angle = j as f32 * sector_step;
-
-				let x = xy * sector_angle.cos();
-				let y = xy * sector_angle.sin();
-
-				semicircle_verts.push(draw::Vert::new([-(z + forward_x), y, x], COLOR));
-			}
-		}
-		for i in 0..STACK_COUNT {
-			let k1 = i * (SECTOR_COUNT + 1);
-			let k2 = k1 + SECTOR_COUNT + 1;
-
-			for j in 0..SECTOR_COUNT {
-				let k1 = k1 + j;
-				let k2 = k2 + j;
-
-				verts.push(semicircle_verts[k1]);
-				verts.push(semicircle_verts[k2]);
-				verts.push(semicircle_verts[k1 + 1]);
-
-				verts.push(semicircle_verts[k1 + 1]);
-				verts.push(semicircle_verts[k2]);
-				verts.push(semicircle_verts[k2 + 1]);
-			}
-		}
-		//--------------------------------------------------------------------//
-		let prop_center = [ -LENGTH / 2.0 - RADIUS, 0.0, 0.0 ];
-
-		// let prop_verts 
-
-
-		
-
-
-
-		//--------------------------------------------------------------------//
-
+        verts.iter_mut().for_each(|v| {
+            v.pos[0] *= SUB_MODEL_SCALE / highest_v / 2.0;
+            v.pos[1] *= SUB_MODEL_SCALE / highest_v;
+            v.pos[2] *= SUB_MODEL_SCALE / highest_v;
+        });
+        //--------------------------------------------------------------------//
 
 		let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Sub Vertex Buffer"),
             contents: bytemuck::cast_slice(&verts),
             usage: wgpu::BufferUsages::VERTEX,
+        });
+        
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Sub Index Buffer"),
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX,
         });
 
 		let inst = draw::sub::Instance::identity();
@@ -295,9 +210,11 @@ impl Sub {
 
 			keys: Keys::new(),
 
-			num_verts: verts.len(),
 			verts_buffer,
+            index_buffer,
 			inst_buffer,
+
+            num_indices: indices.len(),
 		}
 	}
 
@@ -364,10 +281,6 @@ impl Sub {
 		self.up = overall_change_quat.rotate_vector(self.up);
 		self.right = overall_change_quat.rotate_vector(self.right);
         
-        // self.forward = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.forward));
-        // self.up = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.up));
-        // self.right = yaw_change_quat.rotate_vector(pitch_change_quat.rotate_vector(self.right));
-
         self.pos += self.forward * self.speed * delta;
         self.target = self.pos + self.forward * self.speed;
 
@@ -381,15 +294,19 @@ impl Sub {
 		let eye_diff = eye_goal - camera.eye;
 		let eye_move = eye_diff * delta * CAMERA_FOLLOW_SPEED;
 		camera.eye += eye_move;
+        // camera.eye = eye_goal;
 
-		let target_goal = self.pos + self.forward * TARGET_LEAD;
-		let target_diff = target_goal - camera.target;
-		let target_move = target_diff * delta * CAMERA_FOLLOW_SPEED;
-		camera.target += target_move;
+		// let target_goal = self.pos + self.forward * TARGET_LEAD;
+		// let target_diff = target_goal - camera.target;
+		// let target_move = target_diff * delta * CAMERA_FOLLOW_SPEED;
+		// camera.target += target_move;
+        // camera.target = target_goal;
+        camera.target = camera.eye + self.forward - self.up * TARGET_DOWN;
 
 		let up_diff = self.up - camera.up;
 		let up_move = up_diff * delta * CAMERA_FOLLOW_SPEED;
 		camera.up += up_move;
+        // camera.up = self.up;
 		
 		camera.update_uniform();
 	}
@@ -398,17 +315,8 @@ impl Sub {
 		self.keys.process_events(event)
     }
 
-	pub fn inst_buffer_slice(&self) -> wgpu::BufferSlice {
-		self.inst_buffer.slice(..)
-	}
-}
-
-impl draw::VertBuffer for Sub {
-	fn vert_buffer_slice(&self) -> wgpu::BufferSlice {
-		self.verts_buffer.slice(..)
-	}
-	
-	fn num_verts(&self) -> usize {
-		self.num_verts
-	}
+    pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
+    pub fn index_buffer_slice(&self) -> wgpu::BufferSlice { self.index_buffer.slice(..) }
+	pub fn inst_buffer_slice(&self) -> wgpu::BufferSlice { self.inst_buffer.slice(..) }
+    pub fn num_indices(&self) -> usize { self.num_indices }
 }
