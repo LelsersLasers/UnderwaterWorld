@@ -20,6 +20,8 @@ const STACK_COUNT: usize = 20;
 const SECTOR_COUNT: usize = 20;
 const RADIUS: f32 = 1.5;
 const LENGTH: f32 = 3.0;
+const PROP_WIDTH: f32 = 0.5;
+const PROP_THICKNESS: f32 = 0.2;
 const COLOR: [f32; 3] = [
 	0.15625,
 	0.15625,
@@ -243,6 +245,16 @@ impl Sub {
 				verts.push(semicircle_verts[k2 + 1]);
 			}
 		}
+		//--------------------------------------------------------------------//
+		let prop_center = [ -LENGTH / 2.0 - RADIUS, 0.0, 0.0 ];
+
+		// let prop_verts 
+
+
+		
+
+
+
 		//--------------------------------------------------------------------//
 
 
