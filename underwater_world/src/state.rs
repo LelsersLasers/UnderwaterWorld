@@ -205,7 +205,6 @@ impl State {
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
-                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
                 // polygon_mode: wgpu::PolygonMode::Line,
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
@@ -246,8 +245,9 @@ impl State {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
-                cull_mode: Some(wgpu::Face::Back),
-                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
+                // cull_mode: Some(wgpu::Face::Back),
+                // MODEL triangles are not wound correctly for backface culling
+                cull_mode: None,
                 // polygon_mode: wgpu::PolygonMode::Line,
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
@@ -341,7 +341,7 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let sub = sub::Sub::new(&device);
+        let sub = sub::Sub::new(&device, &perlin);
         //--------------------------------------------------------------------//
 
         Self {
@@ -386,7 +386,7 @@ impl State {
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
-        println!("FPS: {:5.0}", self.fps_counter.fps());
+        // println!("FPS: {:5.0}", self.fps_counter.fps());
 
         self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);

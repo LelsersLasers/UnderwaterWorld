@@ -1,6 +1,8 @@
 use crate::{camera, draw, sub_obj};
 use wgpu::util::DeviceExt;
 use cgmath::{EuclideanSpace, One, Rotation, Rotation3};
+use noise::NoiseFn;
+use std::collections::HashMap;
 
 const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
@@ -14,7 +16,8 @@ const TARGET_DOWN: f32 = 0.6;
 const HORIZONTAL_OFFSET: f32 = 7.0;
 const VERTICAL_OFFSET: f32 = 6.0;
 
-const SUB_MODEL_SCALE: f32 = 8.0;
+const SUB_MODEL_SCALE: f32 = 2.5;
+const PERLIN_FACTOR: f32 = 2.0;
 
 const CAMERA_FOLLOW_SPEED: f32 = 20.0;
 
@@ -132,9 +135,32 @@ pub struct Sub {
 }
 
 impl Sub {
-	pub fn new(device: &wgpu::Device) -> Self {
+	pub fn new(device: &wgpu::Device, perlin: &noise::Perlin) -> Self {
+        //--------------------------------------------------------------------//
+        let mut mats = HashMap::new();
+
+        for line in sub_obj::SUB_MAT.lines() {
+            let mut split = line.split_whitespace();
+            println!("{:?}", split);
+
+            let first = split.next();
+            match first {
+                Some(key) => {
+                    let r = split.next().unwrap().parse::<f32>().unwrap();
+                    let g = split.next().unwrap().parse::<f32>().unwrap();
+                    let b = split.next().unwrap().parse::<f32>().unwrap();
+
+                    mats.insert(key, [r, g, b]);
+                }
+                _ => continue,
+            }
+        }
+        //--------------------------------------------------------------------//
+
+        //--------------------------------------------------------------------//
 		let mut verts = Vec::new();
         let mut indices = Vec::new();
+        let mut active_color = [0.0, 0.0, 0.0];
 
         let mut highest_v: f32 = 0.0;
 
@@ -146,27 +172,51 @@ impl Sub {
                     let x: f32 = split.next().unwrap().parse().unwrap();
                     let y: f32 = split.next().unwrap().parse().unwrap();
                     let z: f32 = split.next().unwrap().parse().unwrap();
-                    verts.push(draw::Vert::new([x, y, z], COLOR));
+                    verts.push(draw::Vert::new([-z, x, y], COLOR));
 
                     highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
                 }
                 Some("f") => {
-                    for _ in 0..3 {
-                        let i = split.next().unwrap().split("//").next().unwrap().parse::<u32>().unwrap() - 1;
-                        indices.push(i);
+                    // 0 (i) (i + 1)  [for i in 1..(n - 2)]
+                    let remaining = split.collect::<Vec<&str>>();
+                    let n = remaining.len();
+                    for i in 1..(n - 1) {
+                        let i0 = remaining[0].split('/').next().unwrap().parse::<u32>().unwrap() - 1;
+                        let i1 = remaining[i].split('/').next().unwrap().parse::<u32>().unwrap() - 1;
+                        let i2 = remaining[i + 1].split('/').next().unwrap().parse::<u32>().unwrap() - 1;
+                        indices.push(i0);
+                        indices.push(i1);
+                        indices.push(i2);
+
+                        verts[i0 as usize].color = active_color;
+                        verts[i1 as usize].color = active_color;
+                        verts[i2 as usize].color = active_color;
                     }
+                }
+                Some("usemtl") => {
+                    let mut mat = split.next().unwrap();
+                    if mat == "default" {
+                        mat = "Mat.2";
+                    }
+                    active_color = *mats.get(mat).unwrap_or(&active_color);
                 }
                 _ => {}
             }
         }
 
         verts.iter_mut().for_each(|v| {
-            v.pos[0] *= SUB_MODEL_SCALE / highest_v / 2.0;
+            v.pos[0] *= SUB_MODEL_SCALE / highest_v;
             v.pos[1] *= SUB_MODEL_SCALE / highest_v;
             v.pos[2] *= SUB_MODEL_SCALE / highest_v;
+
+            let p = perlin.get([v.pos[0] as f64, v.pos[1] as f64, v.pos[2] as f64]) as f32;
+            v.color[0] += p / PERLIN_FACTOR;
+            v.color[1] += p / PERLIN_FACTOR;
+            v.color[2] += p / PERLIN_FACTOR;
         });
         //--------------------------------------------------------------------//
 
+        //--------------------------------------------------------------------//
 		let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Sub Vertex Buffer"),
             contents: bytemuck::cast_slice(&verts),
@@ -187,6 +237,7 @@ impl Sub {
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
+        //--------------------------------------------------------------------//
 
 		Self {
 			pos: cgmath::Point3::new(0.0, 0.0, 0.0),
@@ -296,11 +347,6 @@ impl Sub {
 		camera.eye += eye_move;
         // camera.eye = eye_goal;
 
-		// let target_goal = self.pos + self.forward * TARGET_LEAD;
-		// let target_diff = target_goal - camera.target;
-		// let target_move = target_diff * delta * CAMERA_FOLLOW_SPEED;
-		// camera.target += target_move;
-        // camera.target = target_goal;
         camera.target = camera.eye + self.forward - self.up * TARGET_DOWN;
 
 		let up_diff = self.up - camera.up;

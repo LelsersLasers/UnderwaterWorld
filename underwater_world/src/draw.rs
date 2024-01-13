@@ -2,7 +2,7 @@
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vert {
 	pub pos: [f32; 3],
-	color: [f32; 3],
+    pub color: [f32; 3],
 }
 impl Vert {
 	pub fn new(pos: [f32; 3], color: [f32; 3]) -> Self {
