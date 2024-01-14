@@ -21,7 +21,7 @@ const PERLIN_FACTOR: f32 = 2.0;
 
 const PROP_START_X: f32 = -120.0;
 
-const CAMERA_FOLLOW_SPEED: f32 = 20.0;
+const CAMERA_FOLLOW_SPEED: f32 = 10.0;
 
 struct Keys {
 	w_down: bool,
