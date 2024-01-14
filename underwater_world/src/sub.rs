@@ -21,12 +21,6 @@ const PERLIN_FACTOR: f32 = 2.0;
 
 const CAMERA_FOLLOW_SPEED: f32 = 20.0;
 
-const COLOR: [f32; 3] = [
-	0.15625,
-	0.15625,
-	0.1953125,
-];
-
 struct Keys {
 	w_down: bool,
 	s_down: bool,
@@ -128,10 +122,9 @@ pub struct Sub {
 	keys: Keys,
 
 	verts_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
 	inst_buffer: wgpu::Buffer,
 
-    num_indices: usize,
+    num_verts: usize,
 }
 
 impl Sub {
@@ -159,7 +152,7 @@ impl Sub {
 
         //--------------------------------------------------------------------//
 		let mut verts = Vec::new();
-        let mut indices = Vec::new();
+        let mut vert_poses = Vec::new();
         let mut active_color = [0.0, 0.0, 0.0];
 
         let mut highest_v: f32 = 0.0;
@@ -172,7 +165,7 @@ impl Sub {
                     let x: f32 = split.next().unwrap().parse().unwrap();
                     let y: f32 = split.next().unwrap().parse().unwrap();
                     let z: f32 = split.next().unwrap().parse().unwrap();
-                    verts.push(draw::Vert::new([-z, x, y], COLOR));
+                    vert_poses.push([-z, x, y]);
 
                     highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
                 }
@@ -181,16 +174,13 @@ impl Sub {
                     let remaining = split.collect::<Vec<&str>>();
                     let n = remaining.len();
                     for i in 1..(n - 1) {
-                        let i0 = remaining[0].split('/').next().unwrap().parse::<u32>().unwrap() - 1;
-                        let i1 = remaining[i].split('/').next().unwrap().parse::<u32>().unwrap() - 1;
-                        let i2 = remaining[i + 1].split('/').next().unwrap().parse::<u32>().unwrap() - 1;
-                        indices.push(i0);
-                        indices.push(i1);
-                        indices.push(i2);
+                        let i0 = remaining[0].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
+                        let i1 = remaining[i].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
+                        let i2 = remaining[i + 1].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
 
-                        verts[i0 as usize].color = active_color;
-                        verts[i1 as usize].color = active_color;
-                        verts[i2 as usize].color = active_color;
+                        verts.push(draw::Vert::new(vert_poses[i0], active_color));
+                        verts.push(draw::Vert::new(vert_poses[i1], active_color));
+                        verts.push(draw::Vert::new(vert_poses[i2], active_color));
                     }
                 }
                 Some("usemtl") => {
@@ -221,12 +211,6 @@ impl Sub {
             label: Some("Sub Vertex Buffer"),
             contents: bytemuck::cast_slice(&verts),
             usage: wgpu::BufferUsages::VERTEX,
-        });
-        
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Sub Index Buffer"),
-            contents: bytemuck::cast_slice(&indices),
-            usage: wgpu::BufferUsages::INDEX,
         });
 
 		let inst = draw::sub::Instance::identity();
@@ -262,10 +246,9 @@ impl Sub {
 			keys: Keys::new(),
 
 			verts_buffer,
-            index_buffer,
 			inst_buffer,
 
-            num_indices: indices.len(),
+            num_verts: verts.len(),
 		}
 	}
 
@@ -362,7 +345,6 @@ impl Sub {
     }
 
     pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
-    pub fn index_buffer_slice(&self) -> wgpu::BufferSlice { self.index_buffer.slice(..) }
 	pub fn inst_buffer_slice(&self) -> wgpu::BufferSlice { self.inst_buffer.slice(..) }
-    pub fn num_indices(&self) -> usize { self.num_indices }
+    pub fn num_verts(&self) -> usize { self.num_verts }
 }

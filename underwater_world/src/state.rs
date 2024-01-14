@@ -386,7 +386,7 @@ impl State {
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
-        // println!("FPS: {:5.0}", self.fps_counter.fps());
+        println!("FPS: {:5.0}", self.fps_counter.fps());
 
         self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);
@@ -445,8 +445,7 @@ impl State {
 
             render_pass.set_vertex_buffer(0, self.sub.vert_buffer_slice());
             render_pass.set_vertex_buffer(1, self.sub.inst_buffer_slice());
-            render_pass.set_index_buffer(self.sub.index_buffer_slice(), wgpu::IndexFormat::Uint32);
-            render_pass.draw_indexed(0..self.sub.num_indices() as u32, 0, 0..1);
+            render_pass.draw(0..self.sub.num_verts() as u32, 0..1);
         }
         //--------------------------------------------------------------------//
 
