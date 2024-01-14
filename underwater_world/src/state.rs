@@ -446,6 +446,10 @@ impl State {
             render_pass.set_vertex_buffer(0, self.sub.vert_buffer_slice());
             render_pass.set_vertex_buffer(1, self.sub.inst_buffer_slice());
             render_pass.draw(0..self.sub.num_verts() as u32, 0..1);
+
+            render_pass.set_vertex_buffer(0, self.sub.prop_vert_buffer_slice());
+            render_pass.set_vertex_buffer(1, self.sub.prop_inst_buffer_slice());
+            render_pass.draw(0..self.sub.num_prop_verts() as u32, 0..1);
         }
         //--------------------------------------------------------------------//
 

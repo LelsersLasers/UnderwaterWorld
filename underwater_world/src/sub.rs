@@ -19,6 +19,8 @@ const VERTICAL_OFFSET: f32 = 6.0;
 const SUB_MODEL_SCALE: f32 = 2.5;
 const PERLIN_FACTOR: f32 = 2.0;
 
+const PROP_START_X: f32 = -120.0;
+
 const CAMERA_FOLLOW_SPEED: f32 = 20.0;
 
 struct Keys {
@@ -117,14 +119,20 @@ pub struct Sub {
 	roll: f32,
 	roll_speed: f32,
 
+    prop_rot: f32,
+
 	speed: f32,
 
 	keys: Keys,
 
 	verts_buffer: wgpu::Buffer,
+    prop_verts_buffer: wgpu::Buffer,
+
 	inst_buffer: wgpu::Buffer,
+    prop_inst_buffer: wgpu::Buffer,
 
     num_verts: usize,
+    num_prop_verts: usize,
 }
 
 impl Sub {
@@ -151,8 +159,11 @@ impl Sub {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-		let mut verts = Vec::new();
         let mut vert_poses = Vec::new();
+
+		let mut verts = Vec::new();
+        let mut prop_verts = Vec::new();
+
         let mut active_color = [0.0, 0.0, 0.0];
 
         let mut highest_v: f32 = 0.0;
@@ -178,9 +189,19 @@ impl Sub {
                         let i1 = remaining[i].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
                         let i2 = remaining[i + 1].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
 
-                        verts.push(draw::Vert::new(vert_poses[i0], active_color));
-                        verts.push(draw::Vert::new(vert_poses[i1], active_color));
-                        verts.push(draw::Vert::new(vert_poses[i2], active_color));
+                        let v0 = vert_poses[i0];
+                        let v1 = vert_poses[i1];
+                        let v2 = vert_poses[i2];
+
+                        if v0[0] < PROP_START_X && v1[0] < PROP_START_X && v2[0] < PROP_START_X {
+                            prop_verts.push(draw::Vert::new(v0, active_color));
+                            prop_verts.push(draw::Vert::new(v1, active_color));
+                            prop_verts.push(draw::Vert::new(v2, active_color));
+                        } else {
+                            verts.push(draw::Vert::new(v0, active_color));
+                            verts.push(draw::Vert::new(v1, active_color));
+                            verts.push(draw::Vert::new(v2, active_color));
+                        }
                     }
                 }
                 Some("usemtl") => {
@@ -204,6 +225,17 @@ impl Sub {
             v.color[1] += p / PERLIN_FACTOR;
             v.color[2] += p / PERLIN_FACTOR;
         });
+
+        prop_verts.iter_mut().for_each(|v| {
+            v.pos[0] *= SUB_MODEL_SCALE / highest_v;
+            v.pos[1] *= SUB_MODEL_SCALE / highest_v;
+            v.pos[2] *= SUB_MODEL_SCALE / highest_v;
+
+            let p = perlin.get([v.pos[0] as f64, v.pos[1] as f64, v.pos[2] as f64]) as f32;
+            v.color[0] += p / PERLIN_FACTOR;
+            v.color[1] += p / PERLIN_FACTOR;
+            v.color[2] += p / PERLIN_FACTOR;
+        });
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
@@ -213,11 +245,26 @@ impl Sub {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
+        let prop_verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Sub Propeller Vertex Buffer"),
+            contents: bytemuck::cast_slice(&prop_verts),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
 		let inst = draw::sub::Instance::identity();
 		let inst_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
                 contents: bytemuck::cast_slice(&[inst]),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        let prop_inst = draw::sub::Instance::identity();
+        let prop_inst_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Propellers Instance Buffer"),
+                contents: bytemuck::cast_slice(&[prop_inst]),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
@@ -240,15 +287,21 @@ impl Sub {
 
 			roll: 0.0,
 			roll_speed: 0.0,
+
+            prop_rot: 0.0,
 			
 			speed: 4.0,
 
 			keys: Keys::new(),
 
 			verts_buffer,
+            prop_verts_buffer,
+
 			inst_buffer,
+            prop_inst_buffer,
 
             num_verts: verts.len(),
+            num_prop_verts: prop_verts.len(),
 		}
 	}
 
@@ -303,6 +356,8 @@ impl Sub {
 
 		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
+        self.prop_rot += self.speed * delta;
+
 
         let pitch_change_quat = cgmath::Quaternion::from_axis_angle(self.right, cgmath::Rad(pitch_change));
         let yaw_change_quat = cgmath::Quaternion::from_axis_angle(self.up, cgmath::Rad(yaw_change));
@@ -321,6 +376,10 @@ impl Sub {
 		let inst_mat = cgmath::Matrix4::from_translation(self.pos.to_vec()) * cgmath::Matrix4::from(self.overall_rotation);
 		let inst = draw::sub::Instance::new(inst_mat);
 		queue.write_buffer(&self.inst_buffer, 0, bytemuck::cast_slice(&[inst]));
+
+        let prop_inst_mat = inst_mat * cgmath::Matrix4::from_angle_x(cgmath::Rad(self.prop_rot));
+        let prop_inst = draw::sub::Instance::new(prop_inst_mat);
+        queue.write_buffer(&self.prop_inst_buffer, 0, bytemuck::cast_slice(&[prop_inst]));
 	}
 
 	pub fn update_camera(&self, camera: &mut camera::Camera, delta: f32) {
@@ -345,6 +404,11 @@ impl Sub {
     }
 
     pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
+    pub fn prop_vert_buffer_slice(&self) -> wgpu::BufferSlice { self.prop_verts_buffer.slice(..) }
+
 	pub fn inst_buffer_slice(&self) -> wgpu::BufferSlice { self.inst_buffer.slice(..) }
+    pub fn prop_inst_buffer_slice(&self) -> wgpu::BufferSlice { self.prop_inst_buffer.slice(..) }
+
     pub fn num_verts(&self) -> usize { self.num_verts }
+    pub fn num_prop_verts(&self) -> usize { self.num_prop_verts }
 }
