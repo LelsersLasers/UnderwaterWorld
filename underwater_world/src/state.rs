@@ -1,5 +1,7 @@
 use crate::{camera, chunk, consts, draw, texture, timer, sub};
 use wgpu::util::DeviceExt;
+use std::collections::HashMap;
+
 
 pub struct State {
     surface: wgpu::Surface,
@@ -27,7 +29,7 @@ pub struct State {
 
     perlin: noise::Perlin,
 
-    chunks: Vec<chunk::Chunk>,
+    chunks: HashMap<(i32, i32, i32), chunk::Chunk>,
 
     sub: sub::Sub,
 
@@ -326,15 +328,16 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let mut chunks = Vec::new();
+        let mut chunks = HashMap::new();
         // let chunk = chunk::Chunk::new([0, 0, 0], &perlin, &device);
         // chunks.push(chunk);
 
         for x in -1..=1 {
             for y in -1..=1 {
                 for z in -1..=1 {
-                    let chunk = chunk::Chunk::new([x, y, z], &perlin, &device);
-                    chunks.push(chunk);
+                    let key = (x, y, z);
+                    let chunk = chunk::Chunk::new(key, &perlin, &device);
+                    chunks.insert(key, chunk);
                 }
             }
         }
@@ -436,7 +439,7 @@ impl State {
 
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
 
-            for chunk in self.chunks.iter() {
+            for (_pos, chunk) in self.chunks.iter() {
                 render_pass.set_vertex_buffer(0, chunk.vert_buffer_slice());
                 render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }

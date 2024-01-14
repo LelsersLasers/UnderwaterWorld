@@ -8,21 +8,21 @@ const ISO_LEVEL: f32 = 0.0;
 
 // space of 16x16x16
 pub struct Chunk {
-	pos: [i32; 3],
+	pos: (i32, i32, i32),
 	num_verts: usize,
 	verts_buffer: wgpu::Buffer,
 }
 
 impl Chunk {
 	pub fn new(
-        pos: [i32; 3],
+        pos: (i32, i32, i32),
         perlin: &noise::Perlin,
 		device: &wgpu::Device,
     ) -> Self {
         let chunk_offset = [
-			pos[0] * CHUNK_SIZE as i32,
-			pos[1] * CHUNK_SIZE as i32,
-			pos[2] * CHUNK_SIZE as i32,
+			pos.0 * CHUNK_SIZE as i32,
+			pos.1 * CHUNK_SIZE as i32,
+			pos.2 * CHUNK_SIZE as i32,
 		];
 
 		// flat vec
