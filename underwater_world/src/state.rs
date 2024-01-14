@@ -1,7 +1,5 @@
-use crate::{camera, chunk, consts, draw, texture, timer, sub};
+use crate::{camera, chunk, consts, draw, texture, timer, sub, world};
 use wgpu::util::DeviceExt;
-use std::collections::HashMap;
-
 
 pub struct State {
     surface: wgpu::Surface,
@@ -29,9 +27,9 @@ pub struct State {
 
     perlin: noise::Perlin,
 
-    chunks: HashMap<(i32, i32, i32), chunk::Chunk>,
-
     sub: sub::Sub,
+
+    world: world::World,
 
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
@@ -328,23 +326,10 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        let mut chunks = HashMap::new();
-        // let chunk = chunk::Chunk::new([0, 0, 0], &perlin, &device);
-        // chunks.push(chunk);
-
-        for x in -1..=1 {
-            for y in -1..=1 {
-                for z in -1..=1 {
-                    let key = (x, y, z);
-                    let chunk = chunk::Chunk::new(key, &perlin, &device);
-                    chunks.insert(key, chunk);
-                }
-            }
-        }
-        //--------------------------------------------------------------------//
-
-        //--------------------------------------------------------------------//
         let sub = sub::Sub::new(&device, &perlin);
+        
+        let mut world = world::World::new();
+        world.update_nearby(sub.chunk());
         //--------------------------------------------------------------------//
 
         Self {
@@ -366,8 +351,8 @@ impl State {
             camera_bind_group,
             fps_counter,
             perlin,
-            chunks,
             sub,
+            world,
         }
     }
 
@@ -383,7 +368,6 @@ impl State {
     }
 
     pub fn input(&mut self, event: &winit::event::WindowEvent) -> bool {
-        // self.camera.process_events(event)
         self.sub.process_events(event)
     }
 
@@ -393,6 +377,8 @@ impl State {
 
         self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);
+
+        self.world.update(&self.sub, &self.perlin, &self.device);
 
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }
@@ -439,7 +425,13 @@ impl State {
 
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
 
-            for (_pos, chunk) in self.chunks.iter() {
+            // for (_pos, chunk) in self.chunks.iter() {
+            //     render_pass.set_vertex_buffer(0, chunk.vert_buffer_slice());
+            //     render_pass.draw(0..chunk.num_verts() as u32, 0..1);
+            // }
+
+            for pos in self.world.chunks_to_render() {
+                let chunk = self.world.get_chunk(*pos).unwrap();
                 render_pass.set_vertex_buffer(0, chunk.vert_buffer_slice());
                 render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }

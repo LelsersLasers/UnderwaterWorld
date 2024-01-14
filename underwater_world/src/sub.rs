@@ -1,4 +1,4 @@
-use crate::{camera, draw, sub_obj};
+use crate::{camera, chunk, draw, sub_obj};
 use wgpu::util::DeviceExt;
 use cgmath::{EuclideanSpace, One, Rotation, Rotation3};
 use noise::NoiseFn;
@@ -401,6 +401,14 @@ impl Sub {
 
 	pub fn process_events(&mut self, event: &winit::event::WindowEvent) -> bool {
 		self.keys.process_events(event)
+    }
+
+    pub fn chunk(&self) -> (i32, i32, i32) {
+         (
+            (self.pos.x / chunk::CHUNK_SIZE as f32).floor() as i32,
+            (self.pos.y / chunk::CHUNK_SIZE as f32).floor() as i32,
+            (self.pos.z / chunk::CHUNK_SIZE as f32).floor() as i32,
+        )
     }
 
     pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }

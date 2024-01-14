@@ -2,13 +2,12 @@ use crate::{marching_table, draw};
 use noise::NoiseFn;
 use wgpu::util::DeviceExt;
 
-const CHUNK_SIZE: usize = 16;
-const ISO_LEVEL: f32 = 0.0;
+pub const CHUNK_SIZE: usize = 16;
+const ISO_LEVEL: f32 = -0.2;
 
 
 // space of 16x16x16
 pub struct Chunk {
-	pos: (i32, i32, i32),
 	num_verts: usize,
 	verts_buffer: wgpu::Buffer,
 }
@@ -124,7 +123,6 @@ impl Chunk {
         });
 
         Self {
-            pos,
             num_verts: verts.len(),
             verts_buffer,
         }
