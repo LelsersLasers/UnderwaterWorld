@@ -3,6 +3,7 @@ mod chunk;
 mod consts;
 mod draw;
 mod marching_table;
+mod perlin_util;
 mod state;
 mod sub;
 mod sub_obj;

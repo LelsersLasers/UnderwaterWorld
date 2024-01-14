@@ -1,9 +1,10 @@
-use crate::{marching_table, draw};
-use noise::NoiseFn;
+use crate::{marching_table, draw, perlin_util};
 use wgpu::util::DeviceExt;
 
 pub const CHUNK_SIZE: usize = 16;
-const ISO_LEVEL: f32 = -0.2;
+const PERLIN_OCTAVES: u32 = 2;
+const ISO_LEVEL: f32 = -0.1;
+const MAX_HEIGHT: f32 = (CHUNK_SIZE * 3) as f32;
 
 
 // space of 16x16x16
@@ -28,12 +29,14 @@ impl Chunk {
 		let isos = (0..CHUNK_SIZE + 1).flat_map(|x| {
 			(0..CHUNK_SIZE + 1).flat_map(move |y| {
 				(0..CHUNK_SIZE + 1).map(move |z| {
+                    let h = z as i32 + chunk_offset[2];
 					let corner = [
-						x as f64 + chunk_offset[0] as f64,
-						y as f64 + chunk_offset[1] as f64,
-						z as f64 + chunk_offset[2] as f64,
+						(x as i32 + chunk_offset[0]) as f64 / CHUNK_SIZE as f64,
+						(y as i32 + chunk_offset[1]) as f64 / CHUNK_SIZE as f64,
+						h as f64 / CHUNK_SIZE as f64,
 					];
-					perlin.get([corner[0] / 16.0, corner[1] / 16.0, corner[2] / 16.0]) as f32
+                    let p = perlin_util::perlin_3d_octaves(perlin, corner, PERLIN_OCTAVES) as f32;
+                    p + (h as f32 / MAX_HEIGHT)
 				})
 			})
 		}).collect::<Vec<f32>>();
@@ -131,3 +134,8 @@ impl Chunk {
     pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
 	pub fn num_verts(&self) -> usize { self.num_verts }
 }
+
+// fn smoothstep(x: f32, edge0: f32, edge1: f32) -> f32 {
+//     let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
+//     t * t * (3.0 - 2.0 * t)
+// }

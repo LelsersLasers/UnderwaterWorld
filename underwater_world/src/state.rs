@@ -1,4 +1,4 @@
-use crate::{camera, chunk, consts, draw, texture, timer, sub, world};
+use crate::{camera, consts, draw, texture, timer, sub, world};
 use wgpu::util::DeviceExt;
 
 pub struct State {

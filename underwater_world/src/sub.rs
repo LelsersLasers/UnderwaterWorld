@@ -16,12 +16,12 @@ const TARGET_DOWN: f32 = 0.6;
 const HORIZONTAL_OFFSET: f32 = 7.0;
 const VERTICAL_OFFSET: f32 = 6.0;
 
+const PROP_START_X: f32 = -120.0;
 const SUB_MODEL_SCALE: f32 = 2.5;
 const PERLIN_FACTOR: f32 = 2.0;
 
-const PROP_START_X: f32 = -120.0;
-
 const CAMERA_FOLLOW_SPEED: f32 = 10.0;
+const START_Z_OFFSET: f32 = 1.0 * chunk::CHUNK_SIZE as f32;
 
 struct Keys {
 	w_down: bool,
@@ -271,8 +271,8 @@ impl Sub {
         //--------------------------------------------------------------------//
 
 		Self {
-			pos: cgmath::Point3::new(0.0, 0.0, 0.0),
-			target: cgmath::Point3::new(1.0, 0.0, 0.0),
+			pos: cgmath::Point3::new(0.0, 0.0, START_Z_OFFSET),
+			target: cgmath::Point3::new(1.0, 0.0, START_Z_OFFSET),
             up: cgmath::Vector3::unit_z(),
             forward: cgmath::Vector3::unit_x(),
             right: cgmath::Vector3::unit_y(),
