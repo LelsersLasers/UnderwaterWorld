@@ -8,6 +8,8 @@ const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
 const ACCELERATION: f32 = 5.0;
 
+const EXTRA_PROP_ROT: f32 = 2.0;
+
 const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 6.0;
 const MAX_DIVE_SPEED: f32 = std::f32::consts::PI / 3.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
@@ -356,7 +358,7 @@ impl Sub {
 
 		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
-        self.prop_rot += self.speed * delta;
+        self.prop_rot += self.speed * EXTRA_PROP_ROT * delta;
 
 
         let pitch_change_quat = cgmath::Quaternion::from_axis_angle(self.right, cgmath::Rad(pitch_change));
@@ -393,7 +395,7 @@ impl Sub {
         let target_diff = target_goal - camera.target;
         let target_move = target_diff * delta * CAMERA_FOLLOW_SPEED;
         camera.target += target_move;
-        // camera.target = camera.eye + self.forward - self.up * TARGET_DOWN;
+        // camera.target = target_goal;
 
 		let up_diff = self.up - camera.up;
 		let up_move = up_diff * delta * CAMERA_FOLLOW_SPEED;
