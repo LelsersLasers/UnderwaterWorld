@@ -142,7 +142,6 @@ impl Sub {
 
         for line in sub_obj::SUB_MAT.lines() {
             let mut split = line.split_whitespace();
-            println!("{:?}", split);
 
             let first = split.next();
             match first {

@@ -25,20 +25,6 @@ impl World {
         self.chunks.get(&pos)
     }
 
-    pub fn generate_chunk(
-        &mut self,
-        pos: (i32, i32, i32),
-        perlin: &noise::Perlin,
-		device: &wgpu::Device,
-    ) {
-        if self.get_chunk(pos).is_some() {
-            return;
-        }
-
-        let chunk = chunk::Chunk::new(pos, perlin, device);
-        self.chunks.insert(pos, chunk);
-    }
-
     pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
         let sub_chunk = sub.chunk();
         if sub_chunk != self.last_sub_chunk {
@@ -46,8 +32,11 @@ impl World {
         }
 
         if let Some(pos) = self.chunks_to_generate.pop() {
-            self.generate_chunk(pos, perlin, device);
-            self.chunks_to_render.push(pos);
+            let chunk = chunk::Chunk::new(pos, perlin, device);
+            if chunk.not_blank() {
+                self.chunks_to_render.push(pos);
+            }
+            self.chunks.insert(pos, chunk);
         }
     }
 
@@ -70,10 +59,15 @@ impl World {
                         sub_chunk.2 + z,
                     );
 
-                    if self.chunks.contains_key(&chunk_pos) {
-                        self.chunks_to_render.push(chunk_pos);
-                    } else {
-                        self.chunks_to_generate.push(chunk_pos);
+                    match self.get_chunk(chunk_pos) {
+                        Some(chunk) => {
+                            if chunk.not_blank() {
+                                self.chunks_to_render.push(chunk_pos);
+                            }
+                        }
+                        None => {
+                            self.chunks_to_generate.push(chunk_pos);
+                        }
                     }
                 }
             }

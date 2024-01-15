@@ -10,7 +10,7 @@ const MAX_HEIGHT: f32 = (CHUNK_SIZE * 3) as f32;
 // space of 16x16x16
 pub struct Chunk {
 	num_verts: usize,
-	verts_buffer: wgpu::Buffer,
+	verts_buffer: Option<wgpu::Buffer>,
 }
 
 impl Chunk {
@@ -119,19 +119,29 @@ impl Chunk {
 			}
 		}
 
-        let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(&format!("{:?} Vertex Buffer", pos)),
-            contents: bytemuck::cast_slice(&verts),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+        let num_verts = verts.len();
 
-        Self {
-            num_verts: verts.len(),
-            verts_buffer,
+        if num_verts > 0 {
+            let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some(&format!("{:?} Vertex Buffer", pos)),
+                contents: bytemuck::cast_slice(&verts),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+            Self {
+                num_verts,
+                verts_buffer: Some(verts_buffer),
+            }
+        } else {
+            Self {
+                num_verts,
+                verts_buffer: None,
+            }
         }
 	}
 
-    pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
+    pub fn not_blank(&self) -> bool { self.verts_buffer.is_some() }
+    // only call if self is not blank
+    pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.as_ref().unwrap().slice(..) }
 	pub fn num_verts(&self) -> usize { self.num_verts }
 }
 
