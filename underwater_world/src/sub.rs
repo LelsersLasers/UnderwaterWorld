@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
+const MIDDLE_SPEED: f32 = 4.0;
 const ACCELERATION: f32 = 5.0;
 
 const EXTRA_PROP_ROT: f32 = 2.0;
@@ -292,7 +293,7 @@ impl Sub {
 
             prop_rot: 0.0,
 			
-			speed: 4.0,
+			speed: MIDDLE_SPEED,
 
 			keys: Keys::new(),
 
@@ -347,16 +348,18 @@ impl Sub {
 
 		self.decay_turn_rates(delta);
 
-        let pitch_change = self.pitch_speed * delta;
+		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
+
+        let angle_change_mod = (self.speed / MIDDLE_SPEED).clamp(0.0, 1.0);
+
+        let pitch_change = self.pitch_speed * delta * angle_change_mod;
 		self.pitch += pitch_change;
 
-        let yaw_change = self.yaw_speed * delta;
+        let yaw_change = self.yaw_speed * delta * angle_change_mod;
 		self.yaw += yaw_change;
 
-		let roll_change = self.roll_speed * delta;
+		let roll_change = self.roll_speed * delta * angle_change_mod;
 		self.roll += roll_change;
-
-		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
         self.prop_rot += self.speed * EXTRA_PROP_ROT * delta;
 
