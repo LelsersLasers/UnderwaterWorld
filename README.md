@@ -5,9 +5,12 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - Better terrain generation
-    - Coloring terrain
+    - + Coloring terrain
+    - More phsyically plausible
 - Resizing
 - Collisions with walls?
+    - Sub is hard to control + might be frustrating to get stuck in dead end caves
+    - But the upside is you just go through walls
 - 3d fish/boids
     - Obstacle avoidance
     - Preformance: only exist in nearby chunks

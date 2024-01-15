@@ -70,16 +70,7 @@ pub async fn run() {
             } if window_id == state.window().id() => {
                 if !state.input(event) {
                     match event {
-                        winit::event::WindowEvent::CloseRequested
-                        | winit::event::WindowEvent::KeyboardInput {
-                            input:
-                                winit::event::KeyboardInput {
-                                    state: winit::event::ElementState::Pressed,
-                                    virtual_keycode: Some(winit::event::VirtualKeyCode::Escape),
-                                    ..
-                                },
-                            ..
-                        } => *control_flow = winit::event_loop::ControlFlow::Exit,
+                        winit::event::WindowEvent::CloseRequested => *control_flow = winit::event_loop::ControlFlow::Exit,
                         winit::event::WindowEvent::Resized(physical_size) => {
                             state.resize(*physical_size);
                         }
