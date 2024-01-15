@@ -8,19 +8,51 @@
     <title>Underwater World</title>
     <style>
         canvas {
-            background-color: black;
+            background-color: rgb(0, 25, 51);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            outline: none !important;
+            border: none !important;
+            background-color: rgb(0, 25, 51);
         }
     </style>
 </head>
 
-<body id="wasm-example">
+<body onresize="resize()">
     <div id="add_canvas_to"></div>
 
     <script type="module">
         import init from "./pkg/underwater_world.js";
         init().then(() => {
             console.log("WASM Loaded");
+
+            resize();
         });
+
+    </script>
+
+    <script>
+
+        function resize() {
+            const canvas = document.getElementsByTagName("canvas")[0];
+
+            let max_width  = window.innerWidth - 4;
+            let max_height = window.innerHeight - 4;
+
+            let width = Math.min(max_width, max_height * 16 / 9);
+            let height = Math.min(max_height, max_width * 9 / 16);
+
+            
+            canvas.style.width  = width  + "px";
+            canvas.style.height = height + "px";
+
+        }
     </script>
 </body>
 
