@@ -8,7 +8,8 @@ const MIN_SPEED: f32 = 0.5;
 const MAX_SPEED: f32 = 7.5;
 const ACCELERATION: f32 = 5.0;
 
-const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 3.0;
+const MAX_TURN_SPEED: f32 = std::f32::consts::PI / 6.0;
+const MAX_DIVE_SPEED: f32 = std::f32::consts::PI / 3.0;
 const TURN_ACCELERATION: f32 = std::f32::consts::PI;
 const TURN_DECAY: f32 = 3.0;
 
@@ -308,7 +309,7 @@ impl Sub {
         let min_turn_decay = TURN_DECAY * MAX_TURN_SPEED * delta;
 
         if self.keys.w_down || self.keys.s_down {
-			self.pitch_speed = self.pitch_speed.clamp(-MAX_TURN_SPEED, MAX_TURN_SPEED);
+			self.pitch_speed = self.pitch_speed.clamp(-MAX_DIVE_SPEED, MAX_DIVE_SPEED);
 		} else if self.pitch_speed.abs() < min_turn_decay {
 			self.pitch_speed = 0.0;
 		} else {
@@ -388,7 +389,11 @@ impl Sub {
 		camera.eye += eye_move;
         // camera.eye = eye_goal;
 
-        camera.target = camera.eye + self.forward - self.up * TARGET_DOWN;
+        let target_goal = eye_goal + self.forward - self.up * TARGET_DOWN;
+        let target_diff = target_goal - camera.target;
+        let target_move = target_diff * delta * CAMERA_FOLLOW_SPEED;
+        camera.target += target_move;
+        // camera.target = camera.eye + self.forward - self.up * TARGET_DOWN;
 
 		let up_diff = self.up - camera.up;
 		let up_move = up_diff * delta * CAMERA_FOLLOW_SPEED;

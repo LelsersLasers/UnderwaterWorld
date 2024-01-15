@@ -5,7 +5,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - Sub
-    - More extreme up/down movement compared to left/right and roll
+    - Turn rate proportional to speed
 - Better terrain generation
 - Coloring terrain
 - Collisions with walls?
