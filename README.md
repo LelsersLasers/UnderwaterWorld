@@ -1,6 +1,6 @@
 # Underwater World
 
-Infinite explorable underwater world created using Rust and WGPU using marching cubes and 3D perlin noise populated with fish (3d boids).
+Infinite explorable underwater world created using Rust and WGPU using marching cubes and 3D perlin noise.
 
 ## TODO
 
@@ -25,3 +25,19 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - Darker the deeper
     - If no wall collisions then void plane to make it obvious you are below
  - Web build
+
+## Controls
+
+- W | up / S | down = pitch up / down
+- A | left / D | right = pitch left / right
+- Q | pgUp / E | pgDown = roll left / right
+- Space / control = speed up / down
+- R | Enter = reset submarine
+
+## Assets
+
+- Submarine: antonmoek - https://www.cgtrader.com/free-3d-models/vehicle/other/low-poly-cartoon-submarine
+
+## Resources
+
+- todo!()
