@@ -25,8 +25,8 @@ pub struct Camera {
 impl Camera {
     pub fn new(config: &wgpu::SurfaceConfiguration) -> Self {
         Self {
-            eye: (1., 1., 1.).into(),
-            target: (0., 0., 0.).into(),
+            eye: cgmath::Point3::new(0.0, 0.0, 0.0),
+            target: cgmath::Point3::new(1.0, 0.0, 0.0),
             up: cgmath::Vector3::unit_z(),
             aspect: config.width as f32 / config.height as f32,
 

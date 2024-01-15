@@ -36,6 +36,7 @@ struct Keys {
 	e_down: bool,
 	space_down: bool,
 	control_down: bool,
+    r_down: bool,
 }
 impl Keys {
 	fn new() -> Self {
@@ -48,6 +49,7 @@ impl Keys {
 			e_down: false,
 			space_down: false,
 			control_down: false,
+            r_down: false,
 		}
 	}
 
@@ -96,6 +98,10 @@ impl Keys {
 						self.control_down = pressed;
 						true
 					}
+                    winit::event::VirtualKeyCode::R | winit::event::VirtualKeyCode::Return => {
+                        self.r_down = pressed;
+                        true
+                    }
                     _ => false,
                 }
             }
@@ -106,7 +112,6 @@ impl Keys {
 
 pub struct Sub {
 	pos: cgmath::Point3<f32>,
-	target: cgmath::Point3<f32>,
 
     up: cgmath::Vector3<f32>,
     forward: cgmath::Vector3<f32>,
@@ -115,12 +120,11 @@ pub struct Sub {
 	overall_rotation: cgmath::Quaternion<f32>,
 
 	yaw: f32,
-	yaw_speed: f32,
-
 	pitch: f32,
-	pitch_speed: f32,
+    roll: f32,
 
-	roll: f32,
+	yaw_speed: f32,
+	pitch_speed: f32,
 	roll_speed: f32,
 
     prop_rot: f32,
@@ -275,7 +279,7 @@ impl Sub {
 
 		Self {
 			pos: cgmath::Point3::new(0.0, 0.0, START_Z_OFFSET),
-			target: cgmath::Point3::new(1.0, 0.0, START_Z_OFFSET),
+
             up: cgmath::Vector3::unit_z(),
             forward: cgmath::Vector3::unit_x(),
             right: cgmath::Vector3::unit_y(),
@@ -283,13 +287,12 @@ impl Sub {
 			overall_rotation: cgmath::Quaternion::one(),
 
 			yaw: 0.0,
-			yaw_speed: 0.0,
+            pitch: 0.0,
+            roll: 0.0,
 
-			pitch: 0.0,
-			pitch_speed: 0.0,
-
-			roll: 0.0,
-			roll_speed: 0.0,
+            yaw_speed: 0.0,
+            pitch_speed: 0.0,
+            roll_speed: 0.0,
 
             prop_rot: 0.0,
 			
@@ -346,37 +349,55 @@ impl Sub {
 		if self.keys.space_down { self.speed   += ACCELERATION * delta; }
 		if self.keys.control_down { self.speed -= ACCELERATION * delta; }
 
-		self.decay_turn_rates(delta);
+        if self.keys.r_down {
+            self.speed = MIDDLE_SPEED;
+            self.pos.z = START_Z_OFFSET;
 
-		self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
+            self.pitch = 0.0;
+            self.yaw = 0.0;
+            self.roll = 0.0;
 
-        let angle_change_mod = (self.speed / MIDDLE_SPEED).clamp(0.0, 1.0);
+            self.pitch_speed = 0.0;
+            self.yaw_speed = 0.0;
+            self.roll_speed = 0.0;
 
-        let pitch_change = self.pitch_speed * delta * angle_change_mod;
-		self.pitch += pitch_change;
+            self.overall_rotation = cgmath::Quaternion::one();
 
-        let yaw_change = self.yaw_speed * delta * angle_change_mod;
-		self.yaw += yaw_change;
+            self.forward = cgmath::Vector3::unit_x();
+            self.up = cgmath::Vector3::unit_z();
+            self.right = cgmath::Vector3::unit_y();
+        } else {
+            self.decay_turn_rates(delta);
 
-		let roll_change = self.roll_speed * delta * angle_change_mod;
-		self.roll += roll_change;
+            self.speed = self.speed.clamp(MIN_SPEED, MAX_SPEED);
 
-        self.prop_rot += self.speed * EXTRA_PROP_ROT * delta;
+            let angle_change_mod = (self.speed / MIDDLE_SPEED).clamp(0.0, 1.0);
+
+            let pitch_change = self.pitch_speed * delta * angle_change_mod;
+            self.pitch += pitch_change;
+
+            let yaw_change = self.yaw_speed * delta * angle_change_mod;
+            self.yaw += yaw_change;
+
+            let roll_change = self.roll_speed * delta * angle_change_mod;
+            self.roll += roll_change;
+
+            self.prop_rot += self.speed * EXTRA_PROP_ROT * delta;
 
 
-        let pitch_change_quat = cgmath::Quaternion::from_axis_angle(self.right, cgmath::Rad(pitch_change));
-        let yaw_change_quat = cgmath::Quaternion::from_axis_angle(self.up, cgmath::Rad(yaw_change));
-		let roll_change_quat = cgmath::Quaternion::from_axis_angle(self.forward, cgmath::Rad(roll_change));
+            let pitch_change_quat = cgmath::Quaternion::from_axis_angle(self.right, cgmath::Rad(pitch_change));
+            let yaw_change_quat = cgmath::Quaternion::from_axis_angle(self.up, cgmath::Rad(yaw_change));
+            let roll_change_quat = cgmath::Quaternion::from_axis_angle(self.forward, cgmath::Rad(roll_change));
 
-		let overall_change_quat = yaw_change_quat * pitch_change_quat * roll_change_quat;
-		self.overall_rotation = overall_change_quat * self.overall_rotation;
+            let overall_change_quat = yaw_change_quat * pitch_change_quat * roll_change_quat;
+            self.overall_rotation = overall_change_quat * self.overall_rotation;
 
-		self.forward = overall_change_quat.rotate_vector(self.forward);
-		self.up = overall_change_quat.rotate_vector(self.up);
-		self.right = overall_change_quat.rotate_vector(self.right);
-        
-        self.pos += self.forward * self.speed * delta;
-        self.target = self.pos + self.forward * self.speed;
+            self.forward = overall_change_quat.rotate_vector(self.forward);
+            self.up = overall_change_quat.rotate_vector(self.up);
+            self.right = overall_change_quat.rotate_vector(self.right);
+            
+            self.pos += self.forward * self.speed * delta;
+        }
 
 		let inst_mat = cgmath::Matrix4::from_translation(self.pos.to_vec()) * cgmath::Matrix4::from(self.overall_rotation);
 		let inst = draw::sub::Instance::new(inst_mat);
