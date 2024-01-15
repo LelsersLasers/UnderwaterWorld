@@ -4,9 +4,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
-- Sub
-    - Fix sub rotating and movement calculations
-        - Should be able to simplify them
 - Better terrain generation
 - Coloring terrain
 - Collisions with walls?
