@@ -201,13 +201,13 @@ impl Sub {
                         let v2 = vert_poses[i2];
 
                         if v0[0] < PROP_START_X && v1[0] < PROP_START_X && v2[0] < PROP_START_X {
-                            prop_verts.push(draw::Vert::new(v0, active_color));
-                            prop_verts.push(draw::Vert::new(v1, active_color));
-                            prop_verts.push(draw::Vert::new(v2, active_color));
+                            prop_verts.push(draw::VertColor::new(v0, active_color));
+                            prop_verts.push(draw::VertColor::new(v1, active_color));
+                            prop_verts.push(draw::VertColor::new(v2, active_color));
                         } else {
-                            verts.push(draw::Vert::new(v0, active_color));
-                            verts.push(draw::Vert::new(v1, active_color));
-                            verts.push(draw::Vert::new(v2, active_color));
+                            verts.push(draw::VertColor::new(v0, active_color));
+                            verts.push(draw::VertColor::new(v1, active_color));
+                            verts.push(draw::VertColor::new(v2, active_color));
                         }
                     }
                 }
@@ -258,7 +258,7 @@ impl Sub {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-		let inst = draw::sub::Instance::identity();
+		let inst = draw::Instance::identity();
 		let inst_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
@@ -267,7 +267,7 @@ impl Sub {
             }
         );
 
-        let prop_inst = draw::sub::Instance::identity();
+        let prop_inst = draw::Instance::identity();
         let prop_inst_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Propellers Instance Buffer"),
@@ -400,11 +400,11 @@ impl Sub {
         }
 
 		let inst_mat = cgmath::Matrix4::from_translation(self.pos.to_vec()) * cgmath::Matrix4::from(self.overall_rotation);
-		let inst = draw::sub::Instance::new(inst_mat);
+		let inst = draw::Instance::new(inst_mat);
 		queue.write_buffer(&self.inst_buffer, 0, bytemuck::cast_slice(&[inst]));
 
         let prop_inst_mat = inst_mat * cgmath::Matrix4::from_angle_x(cgmath::Rad(self.prop_rot));
-        let prop_inst = draw::sub::Instance::new(prop_inst_mat);
+        let prop_inst = draw::Instance::new(prop_inst_mat);
         queue.write_buffer(&self.prop_inst_buffer, 0, bytemuck::cast_slice(&[prop_inst]));
 	}
 

@@ -105,7 +105,7 @@ impl Chunk {
 
 						let color_intensity = *tri_index as f32 / 16.0;
 
-						let vert = draw::Vert::new(
+						let vert = draw::VertColor::new(
 							[
 								middle[0] + chunk_offset[0] as f32,
 								middle[1] + chunk_offset[1] as f32,

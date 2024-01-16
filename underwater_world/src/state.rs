@@ -10,6 +10,7 @@ pub struct State {
 
     terrain_render_pipeline: wgpu::RenderPipeline,
     sub_render_pipeline: wgpu::RenderPipeline,
+    fish_render_pipeline: wgpu::RenderPipeline,
 
     // vertex_buffer: wgpu::Buffer,
     // index_buffer: wgpu::Buffer,
@@ -174,10 +175,37 @@ impl State {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
+        let texture_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        // This should match the filterable field of the
+                        // corresponding Texture entry above.
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+                label: Some("texture_bind_group_layout"),
+            });
+        //--------------------------------------------------------------------//
+
+        //--------------------------------------------------------------------//
         let terrain_shader = device.create_shader_module(wgpu::include_wgsl!("terrain.wgsl"));
         let sub_shader = device.create_shader_module(wgpu::include_wgsl!("sub.wgsl"));
 
-        let render_pipeline_layout =
+        let terrain_sub_render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
@@ -187,11 +215,11 @@ impl State {
             });
         let terrain_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Terrain Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
+            layout: Some(&terrain_sub_render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &terrain_shader,
                 entry_point: "vs_main",
-                buffers: &[draw::Vert::desc()],
+                buffers: &[draw::VertColor::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &terrain_shader,
@@ -207,7 +235,6 @@ impl State {
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
-                // polygon_mode: wgpu::PolygonMode::Line,
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
                 conservative: false,
@@ -228,11 +255,11 @@ impl State {
         });
         let sub_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Sub Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
+            layout: Some(&terrain_sub_render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &sub_shader,
                 entry_point: "vs_main",
-                buffers: &[draw::Vert::desc(), draw::sub::Instance::desc()],
+                buffers: &[draw::VertColor::desc(), draw::Instance::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &sub_shader,
@@ -250,7 +277,59 @@ impl State {
                 // cull_mode: Some(wgpu::Face::Back),
                 // MODEL triangles are not wound correctly for backface culling
                 cull_mode: None,
-                // polygon_mode: wgpu::PolygonMode::Line,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: texture::Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1, 
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+        });
+
+        let fish_shader = device.create_shader_module(wgpu::include_wgsl!("fish.wgsl"));
+
+        let fish_render_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Render Pipeline Layout"),
+                bind_group_layouts: &[
+                    &camera_bind_group_layout,
+                    &texture_bind_group_layout
+                ],
+                push_constant_ranges: &[],
+            });
+        let fish_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Fish Render Pipeline"),
+            layout: Some(&fish_render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &fish_shader,
+                entry_point: "vs_main",
+                buffers: &[draw::VertTex::desc(), draw::Instance::desc()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &fish_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                // cull_mode: Some(wgpu::Face::Back),
+                cull_mode: None,
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
                 conservative: false,
@@ -325,15 +404,13 @@ impl State {
         let seed = (instant::now().round() % u32::MAX as f64) as u32;
         println!("Seed: {}", seed);
         let perlin = noise::Perlin::new(seed);
-        //--------------------------------------------------------------------//
 
-        //--------------------------------------------------------------------//
         let sub = sub::Sub::new(&device, &perlin);
         
         let mut world = world::World::new();
         world.update_nearby(sub.chunk());
 
-        let boid_manager = boid::BoidManager::new();
+        let boid_manager = boid::BoidManager::new(&device, &queue, &texture_bind_group_layout);
         //--------------------------------------------------------------------//
 
         Self {
@@ -345,6 +422,7 @@ impl State {
             size,
             terrain_render_pipeline,
             sub_render_pipeline,
+            fish_render_pipeline,
             // vertex_buffer,
             // index_buffer,
             // instances,
@@ -428,21 +506,19 @@ impl State {
             });
 
 
+            //----------------------------------------------------------------//
             render_pass.set_pipeline(&self.terrain_render_pipeline);
 
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
-
-            // for (_pos, chunk) in self.chunks.iter() {
-            //     render_pass.set_vertex_buffer(0, chunk.vert_buffer_slice());
-            //     render_pass.draw(0..chunk.num_verts() as u32, 0..1);
-            // }
 
             for pos in self.world.chunks_to_render() {
                 let chunk = self.world.get_chunk(*pos).unwrap();
                 render_pass.set_vertex_buffer(0, chunk.vert_buffer_slice());
                 render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }
+            //----------------------------------------------------------------//
 
+            //----------------------------------------------------------------//
             render_pass.set_pipeline(&self.sub_render_pipeline);
 
             render_pass.set_vertex_buffer(0, self.sub.vert_buffer_slice());
@@ -452,6 +528,20 @@ impl State {
             render_pass.set_vertex_buffer(0, self.sub.prop_vert_buffer_slice());
             render_pass.set_vertex_buffer(1, self.sub.prop_inst_buffer_slice());
             render_pass.draw(0..self.sub.num_prop_verts() as u32, 0..1);
+            //----------------------------------------------------------------//
+
+            //----------------------------------------------------------------//
+            render_pass.set_pipeline(&self.fish_render_pipeline);
+
+            // render_pass.set_bind_group(1, &self.diffuse_bind_group, &[]);
+            
+            // render_pass.set_vertex_buffer(0, self.vert_buffer.slice(..));
+            // render_pass.set_vertex_buffer(1, self.inst_buffer.slice(..));
+
+            // render_pass.set_index_buffer(self.ind_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+            // render_pass.draw_indexed(0..self.num_inds, 0, 0..1);
+            //----------------------------------------------------------------//
         }
         //--------------------------------------------------------------------//
 
