@@ -8,12 +8,16 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - + Coloring terrain
     - More phsyically plausible
 - Resizing
+- 3d fish/boids
+    - Obstacle avoidance
+    - Specicies
+    - Some sort of "wall force" or downward force to keep them from around z ~= 0
+    - Render
+        - + Animation?
+    - Preformance: only exist in nearby chunks
 - Collisions with walls?
     - Sub is hard to control + might be frustrating to get stuck in dead end caves
     - But the upside is you just go through walls
-- 3d fish/boids
-    - Obstacle avoidance
-    - Preformance: only exist in nearby chunks
 - Text
     - FPS
     - Posistion
@@ -23,6 +27,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - Fog
     - Lighting
     - Darker the deeper
+        - Scale clear color/fog color with sub depth
     - If no wall collisions then void plane to make it obvious you are below
  - Web build
 

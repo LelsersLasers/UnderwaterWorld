@@ -1,3 +1,4 @@
+mod boid;
 mod camera;
 mod chunk;
 mod consts;

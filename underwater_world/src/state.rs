@@ -1,4 +1,4 @@
-use crate::{camera, consts, draw, texture, timer, sub, world};
+use crate::{boid, camera, consts, draw, texture, timer, sub, world};
 use wgpu::util::DeviceExt;
 
 pub struct State {
@@ -30,6 +30,8 @@ pub struct State {
     sub: sub::Sub,
 
     world: world::World,
+
+    boid_manager: boid::BoidManager,
 
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
@@ -330,6 +332,8 @@ impl State {
         
         let mut world = world::World::new();
         world.update_nearby(sub.chunk());
+
+        let boid_manager = boid::BoidManager::new();
         //--------------------------------------------------------------------//
 
         Self {
@@ -353,6 +357,7 @@ impl State {
             perlin,
             sub,
             world,
+            boid_manager,
         }
     }
 
@@ -379,6 +384,8 @@ impl State {
         self.sub.update_camera(&mut self.camera, delta as f32);
 
         self.world.update(&self.sub, &self.perlin, &self.device);
+
+        self.boid_manager.update(delta as f32);
 
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }

@@ -17,6 +17,9 @@ anyhow = "1.0"
 cgmath = "0.18"
 instant = "0.1"
 noise = "0.8.2"
+rand = "0.8.5"
+getrandom = { version = "0.2", features = ["js"] }
+
 
 [dependencies.image]
 version = "0.24"

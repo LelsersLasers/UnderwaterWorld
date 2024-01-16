@@ -2,7 +2,7 @@ use crate::{marching_table, draw, perlin_util};
 use wgpu::util::DeviceExt;
 
 pub const CHUNK_SIZE: usize = 16;
-const PERLIN_OCTAVES: u32 = 2;
+const PERLIN_OCTAVES: u32 = 3;
 const ISO_LEVEL: f32 = -0.1;
 const MAX_HEIGHT: f32 = (CHUNK_SIZE * 3) as f32;
 
