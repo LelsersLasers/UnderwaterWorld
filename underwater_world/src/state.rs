@@ -456,14 +456,14 @@ impl State {
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
-        println!("FPS: {:5.0}", self.fps_counter.fps());
+        // println!("FPS: {:5.0}", self.fps_counter.fps());
 
         self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);
 
         self.world.update(&self.sub, &self.perlin, &self.device);
 
-        self.boid_manager.update(delta as f32);
+        self.boid_manager.update(&self.queue, delta as f32);
 
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }
@@ -513,7 +513,7 @@ impl State {
 
             for pos in self.world.chunks_to_render() {
                 let chunk = self.world.get_chunk(*pos).unwrap();
-                render_pass.set_vertex_buffer(0, chunk.vert_buffer_slice());
+                render_pass.set_vertex_buffer(0, chunk.verts_buffer_slice());
                 render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }
             //----------------------------------------------------------------//
@@ -521,17 +521,26 @@ impl State {
             //----------------------------------------------------------------//
             render_pass.set_pipeline(&self.sub_render_pipeline);
 
-            render_pass.set_vertex_buffer(0, self.sub.vert_buffer_slice());
+            render_pass.set_vertex_buffer(0, self.sub.verts_buffer_slice());
             render_pass.set_vertex_buffer(1, self.sub.inst_buffer_slice());
             render_pass.draw(0..self.sub.num_verts() as u32, 0..1);
 
-            render_pass.set_vertex_buffer(0, self.sub.prop_vert_buffer_slice());
+            render_pass.set_vertex_buffer(0, self.sub.prop_verts_buffer_slice());
             render_pass.set_vertex_buffer(1, self.sub.prop_inst_buffer_slice());
             render_pass.draw(0..self.sub.num_prop_verts() as u32, 0..1);
             //----------------------------------------------------------------//
 
             //----------------------------------------------------------------//
             render_pass.set_pipeline(&self.fish_render_pipeline);
+
+            for species in &boid::ALL_SPECIES {
+                render_pass.set_bind_group(1, self.boid_manager.diffuse_bind_group(*species), &[]);
+
+                render_pass.set_vertex_buffer(0, self.boid_manager.verts_buffer_slice(*species));
+                render_pass.set_vertex_buffer(1, self.boid_manager.inst_buffer_slice(*species));
+
+                render_pass.draw(0..self.boid_manager.num_verts(*species) as u32, 0..1);
+            }
 
             // render_pass.set_bind_group(1, &self.diffuse_bind_group, &[]);
             

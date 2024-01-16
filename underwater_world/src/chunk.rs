@@ -141,7 +141,7 @@ impl Chunk {
 
     pub fn not_blank(&self) -> bool { self.verts_buffer.is_some() }
     // only call if self is not blank
-    pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.as_ref().unwrap().slice(..) }
+    pub fn verts_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.as_ref().unwrap().slice(..) }
 	pub fn num_verts(&self) -> usize { self.num_verts }
 }
 

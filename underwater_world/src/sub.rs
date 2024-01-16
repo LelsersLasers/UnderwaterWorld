@@ -441,8 +441,8 @@ impl Sub {
         )
     }
 
-    pub fn vert_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
-    pub fn prop_vert_buffer_slice(&self) -> wgpu::BufferSlice { self.prop_verts_buffer.slice(..) }
+    pub fn verts_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
+    pub fn prop_verts_buffer_slice(&self) -> wgpu::BufferSlice { self.prop_verts_buffer.slice(..) }
 
 	pub fn inst_buffer_slice(&self) -> wgpu::BufferSlice { self.inst_buffer.slice(..) }
     pub fn prop_inst_buffer_slice(&self) -> wgpu::BufferSlice { self.prop_inst_buffer.slice(..) }

@@ -1,6 +1,7 @@
-use crate::{chunk, texture, world};
+use crate::{boid_obj, chunk, draw, texture, world};
 use cgmath::{InnerSpace, Zero};
 use rand::prelude::*;
+use wgpu::util::DeviceExt;
 
 const MIN_SPEED: f32 = 2.0;
 const MAX_SPEED: f32 = 5.0;
@@ -12,7 +13,7 @@ const MAX_STEER_FORCE: f32 = 3.0;
 
 const NUM_BOIDS: usize = 50;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Species {
     Red = 0,
     Green = 1,
@@ -35,6 +36,8 @@ struct Boid {
     num_flockmates: usize,
 
     species: Species,
+
+    inst: draw::Instance,
 }
 
 impl Boid {
@@ -50,6 +53,8 @@ impl Boid {
             num_flockmates: 0,
 
             species,
+
+            inst: pos_vel_to_inst(position, velocity),
         }
     }
 
@@ -73,6 +78,8 @@ impl Boid {
         self.velocity = self.velocity.normalize_to(target_speed);
 
         self.position += self.velocity * delta;
+
+        self.inst = pos_vel_to_inst(self.position, self.velocity);
     }
 
     fn steer_towards(&self, target: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
@@ -85,15 +92,32 @@ impl Boid {
     }
 }
 
+fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw::Instance {
+    let rot_quat = cgmath::Quaternion::from_arc(
+        cgmath::Vector3::unit_x(),
+        vel,
+        None,
+    );
+    let mat = cgmath::Matrix4::from_translation(pos) * cgmath::Matrix4::from(rot_quat);
+    draw::Instance::new(mat)
+}
 
-struct TextureInfo {
+
+struct PerSpecies {
     diffuse_bind_group: wgpu::BindGroup,
     diffuse_texture: texture::Texture,
+
+    verts_buffer: wgpu::Buffer,
+    // ind_buffer: wgpu::Buffer,
+    inst_buffer: wgpu::Buffer,
+
+    // num_inds: u32,
+    num_verts: usize,
 }
 
 pub struct BoidManager {
     boids: Vec<Boid>,
-    texture_infos: Vec<TextureInfo>,
+    per_species: Vec<PerSpecies>,
 }
 impl BoidManager {
     pub fn new(
@@ -102,28 +126,31 @@ impl BoidManager {
         texture_bind_group_layout: &wgpu::BindGroupLayout,
     ) -> Self {
         let mut rng = rand::thread_rng();
-        let mut boids = Vec::new();
-        let mut texture_infos = Vec::new();
+        let mut boids = Vec::with_capacity(NUM_BOIDS * SPECIES_COUNT);
+        let mut per_species = Vec::new();
 
         let diffuse_bytes_red = include_bytes!("red.jpg");
         let diffuse_bytes_green = include_bytes!("green.png");
 
         for species in &ALL_SPECIES {
+            let mut insts = Vec::with_capacity(NUM_BOIDS);
             for _ in 0..NUM_BOIDS {
                 let position_range = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
-    
                 let position = cgmath::Vector3::new(
                     rng.gen_range(-position_range..position_range),
                     rng.gen_range(-position_range..position_range),
                     rng.gen_range(-position_range..position_range),
                 );
-    
                 let velocity = cgmath::Vector3::new(
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
                 ).normalize_to(rng.gen_range(MIN_SPEED..MAX_SPEED));
-                boids.push(Boid::new(position, velocity, *species));
+
+                let boid = Boid::new(position, velocity, *species);
+
+                insts.push(boid.inst);
+                boids.push(boid);
             }
 
             let diffuse_texture = match species {
@@ -148,16 +175,88 @@ impl BoidManager {
                 }
             );
 
-            texture_infos.push(TextureInfo {
+            let mut vert_poses = Vec::new();
+            let mut vert_txs = Vec::new();
+            let mut verts = Vec::new();
+            // let mut inds = Vec::new();
+
+            let obj = match species {
+                Species::Red   => boid_obj::RED_OBJ,
+                Species::Green => boid_obj::GREEN_OBJ,
+            };
+
+            for line in obj.lines() {
+                let mut split = line.split_whitespace();
+                let first = split.next();
+                match first {
+                    Some("v") => {
+                        let x: f32 = split.next().unwrap().parse().unwrap();
+                        let y: f32 = split.next().unwrap().parse().unwrap();
+                        let z: f32 = split.next().unwrap().parse().unwrap();
+                        vert_poses.push([x, y, z]);
+
+                        // highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
+                    }
+                    Some("vt") => {
+                        let x: f32 = split.next().unwrap().parse().unwrap();
+                        let y: f32 = split.next().unwrap().parse().unwrap();
+                        vert_txs.push([x, y]);
+                    }
+                    Some("f") => {
+                        // 0 (i) (i + 1)  [for i in 1..(n - 2)]
+                        let remaining = split.collect::<Vec<&str>>();
+                        let n = remaining.len();
+                        for i in 1..(n - 1) {
+                            let mut i0 = remaining[0].split('/');
+                            let mut i1 = remaining[i].split('/');
+                            let mut i2 = remaining[i + 1].split('/');
+
+                            let v0 = i0.next().unwrap().parse::<usize>().unwrap() - 1;
+                            let v1 = i1.next().unwrap().parse::<usize>().unwrap() - 1;
+                            let v2 = i2.next().unwrap().parse::<usize>().unwrap() - 1;
+
+                            let vt0 = i0.next().unwrap().parse::<usize>().unwrap() - 1;
+                            let vt1 = i1.next().unwrap().parse::<usize>().unwrap() - 1;
+                            let vt2 = i2.next().unwrap().parse::<usize>().unwrap() - 1;
+
+                            verts.push(draw::VertTex::new(vert_poses[v0], vert_txs[vt0]));
+                            verts.push(draw::VertTex::new(vert_poses[v1], vert_txs[vt1]));
+                            verts.push(draw::VertTex::new(vert_poses[v2], vert_txs[vt2]));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some(&format!("{:?} Vertex Buffer", species)),
+                contents: bytemuck::cast_slice(&verts),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+
+            let inst_buffer = device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: Some("Instance Buffer"),
+                    contents: bytemuck::cast_slice(&insts),
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                }
+            );
+
+            per_species.push(PerSpecies {
                 diffuse_bind_group,
                 diffuse_texture,
+
+                verts_buffer,
+                inst_buffer,
+
+                num_verts: verts.len(),
             });
         }
 
-        Self { boids, texture_infos }
+        Self { boids, per_species }
     }
 
-    pub fn update(&mut self, delta: f32) {
+    pub fn update(&mut self, queue: &wgpu::Queue, delta: f32) {
         for boid in self.boids.iter_mut() {
             boid.num_flockmates = 0;
             boid.sum_flock_heading = cgmath::Vector3::zero();
@@ -174,24 +273,42 @@ impl BoidManager {
                 let offset = self.boids[j].position - self.boids[i].position;
                 let distance = offset.magnitude();
 
-                if distance < PERCEPTION_RADIUS {
-                    self.boids[i].num_flockmates += 1;
-                    
-                    let boid_j_vel = self.boids[j].velocity;
-                    self.boids[i].sum_flock_heading += boid_j_vel;
+                let i_species = self.boids[i].species;
+                let j_species = self.boids[j].species;
 
-                    let boid_j_pos = self.boids[j].position;
-                    self.boids[i].sum_flock_center += boid_j_pos;
-
-                    if distance < AVOIDANCE_RADIUS {
+                if distance < PERCEPTION_RADIUS  {
+                    if i_species == j_species {
+                        self.boids[i].num_flockmates += 1;
+                        
+                        let boid_j_vel = self.boids[j].velocity;
+                        self.boids[i].sum_flock_heading += boid_j_vel;
+    
+                        let boid_j_pos = self.boids[j].position;
+                        self.boids[i].sum_flock_center += boid_j_pos;
+    
+                        if distance < AVOIDANCE_RADIUS {
+                            self.boids[i].sum_flock_separation -= offset;
+                        }
+                    } else {
                         self.boids[i].sum_flock_separation -= offset;
                     }
                 }
             }
         }
 
+        let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
         for boid in self.boids.iter_mut() {
             boid.update(delta);
+            insts[boid.species as usize].push(boid.inst);
+        }
+
+        for (i, species) in ALL_SPECIES.iter().enumerate() {
+            queue.write_buffer(&self.per_species[*species as usize].inst_buffer, 0, bytemuck::cast_slice(&insts[i]));
         }
     }
+
+    pub fn verts_buffer_slice(&self, species: Species) -> wgpu::BufferSlice { self.per_species[species as usize].verts_buffer.slice(..) }
+    pub fn inst_buffer_slice(&self, species: Species) -> wgpu::BufferSlice { self.per_species[species as usize].inst_buffer.slice(..) }
+    pub fn num_verts(&self, species: Species) -> usize { self.per_species[species as usize].num_verts }
+    pub fn diffuse_bind_group(&self, species: Species) -> &wgpu::BindGroup { &self.per_species[species as usize].diffuse_bind_group }
 }

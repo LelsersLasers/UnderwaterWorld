@@ -1,4 +1,5 @@
 mod boid;
+mod boid_obj;
 mod camera;
 mod chunk;
 mod consts;
