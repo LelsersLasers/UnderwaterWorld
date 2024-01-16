@@ -13,6 +13,8 @@ const MAX_STEER_FORCE: f32 = 3.0;
 
 const NUM_BOIDS: usize = 50;
 
+const FISH_SCALE: f32 = 1.0;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Species {
     Red = 0,
@@ -105,7 +107,7 @@ fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw
 
 struct PerSpecies {
     diffuse_bind_group: wgpu::BindGroup,
-    diffuse_texture: texture::Texture,
+    // diffuse_texture: texture::Texture,
 
     verts_buffer: wgpu::Buffer,
     // ind_buffer: wgpu::Buffer,
@@ -180,6 +182,8 @@ impl BoidManager {
             let mut verts = Vec::new();
             // let mut inds = Vec::new();
 
+            let mut highest_v: f32 = 0.0;
+
             let obj = match species {
                 Species::Red   => boid_obj::RED_OBJ,
                 Species::Green => boid_obj::GREEN_OBJ,
@@ -195,7 +199,7 @@ impl BoidManager {
                         let z: f32 = split.next().unwrap().parse().unwrap();
                         vert_poses.push([x, y, z]);
 
-                        // highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
+                        highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
                     }
                     Some("vt") => {
                         let x: f32 = split.next().unwrap().parse().unwrap();
@@ -228,11 +232,19 @@ impl BoidManager {
                 }
             }
 
+            verts.iter_mut().for_each(|v| {
+                v.pos[0] *= FISH_SCALE / highest_v;
+                v.pos[1] *= FISH_SCALE / highest_v;
+                v.pos[2] *= FISH_SCALE / highest_v;
+            });
+
             let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(&format!("{:?} Vertex Buffer", species)),
                 contents: bytemuck::cast_slice(&verts),
                 usage: wgpu::BufferUsages::VERTEX,
             });
+
+            println!("insts: {}", insts.len());
 
             let inst_buffer = device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
@@ -244,7 +256,7 @@ impl BoidManager {
 
             per_species.push(PerSpecies {
                 diffuse_bind_group,
-                diffuse_texture,
+                // diffuse_texture,
 
                 verts_buffer,
                 inst_buffer,
