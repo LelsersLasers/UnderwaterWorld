@@ -1,9 +1,9 @@
-// use crate::consts;
+use crate::{chunk, world};
 use cgmath::SquareMatrix;
 
 const Z_NEAR: f32 = 0.1;
-const Z_FAR: f32 = 100.0;
-const FOVY: f32 = 45.0;
+const Z_FAR: f32 = chunk::CHUNK_SIZE as f32 * (world::VIEW_DIST + 1) as f32;
+const FOVY: f32 = 90.0;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(

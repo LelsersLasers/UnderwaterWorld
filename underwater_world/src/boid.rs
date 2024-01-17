@@ -1,21 +1,22 @@
 use crate::{boid_obj, chunk, draw, sub, texture, world};
-use cgmath::{InnerSpace, Zero, EuclideanSpace};
+use cgmath::{InnerSpace, Zero, EuclideanSpace, num_traits::Pow};
 use rand::prelude::*;
 use wgpu::util::DeviceExt;
 
 const MIN_SPEED: f32 = 3.0;
 const MAX_SPEED: f32 = 7.0;
 
-const PERCEPTION_RADIUS: f32 = 10.0;
+const PERCEPTION_RADIUS: f32 = 8.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const MAX_STEER_FORCE: f32 = 10.0;
 
-const NUM_BOIDS: usize = 250;
+const NUM_BOIDS: usize = 400;
 
 const FISH_SCALE: f32 = 1.5;
 
 const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
+const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
 
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -63,7 +64,7 @@ impl Boid {
         }
     }
 
-    fn update(&mut self, delta: f32) {
+    fn update(&mut self, sub: &sub::Sub, delta: f32) {
         let mut acceleration = cgmath::Vector3::zero();
 
         if self.num_flockmates > 0 {
@@ -76,6 +77,13 @@ impl Boid {
             acceleration += separation_force;
             acceleration += alignment_force;
             acceleration += cohesion_force;
+        }
+
+        let sub_offset = sub.pos().to_vec() - self.position;
+        let sub_distance = sub_offset.magnitude();
+        if sub_distance > POS_RANGE || sub_offset.z < -POS_RANGE_Z {
+            let sub_force = self.steer_towards(sub_offset);
+            acceleration += sub_force;
         }
 
         self.velocity += acceleration * delta;
@@ -110,15 +118,13 @@ fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw
     );
     let mat = cgmath::Matrix4::from_translation(pos) * cgmath::Matrix4::from(z_rot_quat) * cgmath::Matrix4::from(xy_rot_quat);
     draw::Instance::new(mat)
-
-    // draw::Instance::new(cgmath::Matrix4::from_translation(pos))
 }
 
 fn random_pos(rng: &mut ThreadRng) -> cgmath::Vector3<f32> {
     cgmath::Vector3::new(
         rng.gen_range(-POS_RANGE..POS_RANGE),
         rng.gen_range(-POS_RANGE..POS_RANGE),
-        rng.gen_range(-POS_RANGE..POS_RANGE),
+        rng.gen_range(-POS_RANGE..POS_RANGE_Z),
     )
 }
 
@@ -260,8 +266,6 @@ impl BoidManager {
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
-            println!("insts: {}", insts.len());
-
             let inst_buffer = device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: Some("Instance Buffer"),
@@ -290,12 +294,6 @@ impl BoidManager {
             boid.sum_flock_heading = cgmath::Vector3::zero();
             boid.sum_flock_center = cgmath::Vector3::zero();
             boid.sum_flock_separation = cgmath::Vector3::zero();
-
-            let offset = (sub.pos() - boid.position).to_vec();
-            let distance = offset.magnitude();
-            if distance > POS_RANGE {
-                boid.velocity += offset.normalize_to(self.rng.gen_range(MIN_SPEED..MAX_SPEED));
-            }
         }
 
         for i in 0..self.boids.len() {
@@ -319,20 +317,25 @@ impl BoidManager {
     
                         let boid_j_pos = self.boids[j].position;
                         self.boids[i].sum_flock_center += boid_j_pos;
+                    }
     
-                        if distance < AVOIDANCE_RADIUS {
-                            self.boids[i].sum_flock_separation -= offset;
-                        }
-                    } else {
-                        self.boids[i].sum_flock_separation -= offset;
+                    if distance < AVOIDANCE_RADIUS {
+                        self.boids[i].sum_flock_separation -= offset / distance.pow(2);
                     }
                 }
+            }
+
+            let offset = sub.pos().to_vec() - self.boids[i].position;
+            let distance = offset.magnitude();
+
+            if distance < PERCEPTION_RADIUS {
+                self.boids[i].sum_flock_separation -= offset / distance.pow(2);
             }
         }
 
         let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
         for boid in self.boids.iter_mut() {
-            boid.update(delta);
+            boid.update(sub, delta);
             insts[boid.species as usize].push(boid.inst);
         }
 

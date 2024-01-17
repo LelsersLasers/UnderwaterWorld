@@ -4,17 +4,18 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
-- Better terrain generation
-    - + Coloring terrain
-    - More phsyically plausible
-- Resizing
 - 3d fish/boids
+    - Stop them from randomly disappearing??
     - Obstacle avoidance
     - Specicies
     - Some sort of "wall force" or downward force to keep them from around z ~= 0
     - Render
         - + Animation?
     - Preformance: only exist in nearby chunks
+- Better terrain generation
+    - + Coloring terrain
+    - More phsyically plausible
+- Resizing
 - Collisions with walls?
     - Sub is hard to control + might be frustrating to get stuck in dead end caves
     - But the upside is you just go through walls
