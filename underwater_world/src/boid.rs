@@ -1,19 +1,22 @@
-use crate::{boid_obj, chunk, draw, texture, world};
-use cgmath::{InnerSpace, Zero};
+use crate::{boid_obj, chunk, draw, sub, texture, world};
+use cgmath::{InnerSpace, Zero, EuclideanSpace};
 use rand::prelude::*;
 use wgpu::util::DeviceExt;
 
-const MIN_SPEED: f32 = 2.0;
-const MAX_SPEED: f32 = 5.0;
+const MIN_SPEED: f32 = 3.0;
+const MAX_SPEED: f32 = 7.0;
 
-const PERCEPTION_RADIUS: f32 = 2.5;
-const AVOIDANCE_RADIUS: f32 = 1.0;
+const PERCEPTION_RADIUS: f32 = 10.0;
+const AVOIDANCE_RADIUS: f32 = 2.0;
 
-const MAX_STEER_FORCE: f32 = 3.0;
+const MAX_STEER_FORCE: f32 = 10.0;
 
-const NUM_BOIDS: usize = 50;
+const NUM_BOIDS: usize = 250;
 
-const FISH_SCALE: f32 = 1.0;
+const FISH_SCALE: f32 = 1.5;
+
+const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
+
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Species {
@@ -95,13 +98,28 @@ impl Boid {
 }
 
 fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw::Instance {
-    let rot_quat = cgmath::Quaternion::from_arc(
+    let xy_rot_quat = cgmath::Quaternion::from_arc(
         cgmath::Vector3::unit_x(),
-        vel,
+        cgmath::Vector3::new(vel.x, vel.y, 0.0),
         None,
     );
-    let mat = cgmath::Matrix4::from_translation(pos) * cgmath::Matrix4::from(rot_quat);
+    let z_rot_quat = cgmath::Quaternion::from_arc(
+        cgmath::Vector3::new(vel.x, vel.y, 0.0),
+        cgmath::Vector3::new(vel.x, vel.y, vel.z),
+        None,
+    );
+    let mat = cgmath::Matrix4::from_translation(pos) * cgmath::Matrix4::from(z_rot_quat) * cgmath::Matrix4::from(xy_rot_quat);
     draw::Instance::new(mat)
+
+    // draw::Instance::new(cgmath::Matrix4::from_translation(pos))
+}
+
+fn random_pos(rng: &mut ThreadRng) -> cgmath::Vector3<f32> {
+    cgmath::Vector3::new(
+        rng.gen_range(-POS_RANGE..POS_RANGE),
+        rng.gen_range(-POS_RANGE..POS_RANGE),
+        rng.gen_range(-POS_RANGE..POS_RANGE),
+    )
 }
 
 
@@ -120,6 +138,7 @@ struct PerSpecies {
 pub struct BoidManager {
     boids: Vec<Boid>,
     per_species: Vec<PerSpecies>,
+    rng: ThreadRng,
 }
 impl BoidManager {
     pub fn new(
@@ -137,12 +156,7 @@ impl BoidManager {
         for species in &ALL_SPECIES {
             let mut insts = Vec::with_capacity(NUM_BOIDS);
             for _ in 0..NUM_BOIDS {
-                let position_range = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
-                let position = cgmath::Vector3::new(
-                    rng.gen_range(-position_range..position_range),
-                    rng.gen_range(-position_range..position_range),
-                    rng.gen_range(-position_range..position_range),
-                );
+                let position = random_pos(&mut rng);
                 let velocity = cgmath::Vector3::new(
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
@@ -197,7 +211,9 @@ impl BoidManager {
                         let x: f32 = split.next().unwrap().parse().unwrap();
                         let y: f32 = split.next().unwrap().parse().unwrap();
                         let z: f32 = split.next().unwrap().parse().unwrap();
-                        vert_poses.push([x, y, z]);
+
+                        let z_sign = if *species == Species::Green { -1.0 } else { 1.0 };
+                        vert_poses.push([z, x, z_sign * y]);
 
                         highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
                     }
@@ -265,15 +281,21 @@ impl BoidManager {
             });
         }
 
-        Self { boids, per_species }
+        Self { boids, per_species, rng }
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, delta: f32) {
+    pub fn update(&mut self, queue: &wgpu::Queue, sub: &sub::Sub, delta: f32) {
         for boid in self.boids.iter_mut() {
             boid.num_flockmates = 0;
             boid.sum_flock_heading = cgmath::Vector3::zero();
             boid.sum_flock_center = cgmath::Vector3::zero();
             boid.sum_flock_separation = cgmath::Vector3::zero();
+
+            let offset = (sub.pos() - boid.position).to_vec();
+            let distance = offset.magnitude();
+            if distance > POS_RANGE {
+                boid.velocity += offset.normalize_to(self.rng.gen_range(MIN_SPEED..MAX_SPEED));
+            }
         }
 
         for i in 0..self.boids.len() {
@@ -321,6 +343,7 @@ impl BoidManager {
 
     pub fn verts_buffer_slice(&self, species: Species) -> wgpu::BufferSlice { self.per_species[species as usize].verts_buffer.slice(..) }
     pub fn inst_buffer_slice(&self, species: Species) -> wgpu::BufferSlice { self.per_species[species as usize].inst_buffer.slice(..) }
-    pub fn num_verts(&self, species: Species) -> usize { self.per_species[species as usize].num_verts }
     pub fn diffuse_bind_group(&self, species: Species) -> &wgpu::BindGroup { &self.per_species[species as usize].diffuse_bind_group }
+    pub fn num_verts(&self, species: Species) -> usize { self.per_species[species as usize].num_verts }
+    pub fn num_inst(&self, _species: Species) -> usize { NUM_BOIDS }
 }
