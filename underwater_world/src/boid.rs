@@ -144,7 +144,6 @@ struct PerSpecies {
 pub struct BoidManager {
     boids: Vec<Boid>,
     per_species: Vec<PerSpecies>,
-    rng: ThreadRng,
 }
 impl BoidManager {
     pub fn new(
@@ -285,7 +284,7 @@ impl BoidManager {
             });
         }
 
-        Self { boids, per_species, rng }
+        Self { boids, per_species }
     }
 
     pub fn update(&mut self, queue: &wgpu::Queue, sub: &sub::Sub, delta: f32) {
