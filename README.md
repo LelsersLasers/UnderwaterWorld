@@ -5,13 +5,15 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
-    - Stop them from randomly disappearing??
     - Obstacle avoidance
+    - Animation: wiggle shader
     - Specicies
+        - More than 2?
+        - Fix red `vt`s?
+        - Different type: ex: jellyfish
     - Some sort of "wall force" or downward force to keep them from around z ~= 0
-    - Render
-        - + Animation?
     - Preformance: only exist in nearby chunks
+        - Either wrap boids, delete far away boids, or cause them to turn back towards the sub
 - Better terrain generation
     - + Coloring terrain
     - More phsyically plausible
