@@ -231,7 +231,10 @@ impl BoidManager {
                         let y: f32 = split.next().unwrap().parse().unwrap();
                         let z: f32 = split.next().unwrap().parse().unwrap();
 
-                        let z_sign = if *species == Species::Green { -1.0 } else { 1.0 };
+                        let z_sign = match species {
+                            Species::Red   => 1.0,
+                            Species::Green => -1.0,
+                        };
                         vert_poses.push([z, x, z_sign * y]);
 
                         highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
