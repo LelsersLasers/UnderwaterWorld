@@ -6,14 +6,14 @@ use wgpu::util::DeviceExt;
 const MIN_SPEED: f32 = 3.0;
 const MAX_SPEED: f32 = 7.0;
 
-const PERCEPTION_RADIUS: f32 = 8.0;
+const PERCEPTION_RADIUS: f32 = 6.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
-const MAX_STEER_FORCE: f32 = 10.0;
+const MAX_STEER_FORCE: f32 = 6.0;
 
 const NUM_BOIDS: usize = 400;
 
-const FISH_SCALE: f32 = 1.5;
+const FISH_SCALE: f32 = 0.75;
 
 const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
 const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
@@ -88,7 +88,7 @@ impl Boid {
 
         self.velocity += acceleration * delta;
         let target_speed = self.velocity.magnitude().min(MAX_SPEED).max(MIN_SPEED);
-        self.velocity = self.velocity.normalize_to(target_speed);
+        self.velocity = safe_normalize_to(self.velocity, target_speed);
 
         self.position += self.velocity * delta;
 
@@ -96,12 +96,9 @@ impl Boid {
     }
 
     fn steer_towards(&self, target: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
-        let v = target.normalize() * MAX_SPEED - self.velocity;
-        if v.magnitude() > MAX_STEER_FORCE {
-            v.normalize_to(MAX_STEER_FORCE)
-        } else {
-            v
-        }
+        let v = safe_normalize_to(target, MAX_SPEED) - self.velocity;
+        let v_mag = v.magnitude().min(MAX_STEER_FORCE);
+        safe_normalize_to(v, v_mag)
     }
 }
 
@@ -120,13 +117,29 @@ fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw
     draw::Instance::new(mat)
 }
 
-fn random_pos(rng: &mut ThreadRng) -> cgmath::Vector3<f32> {
+fn random_pos(rng: &mut ThreadRng, sub: &sub::Sub) -> cgmath::Vector3<f32> {
+    let sub_pos = sub.pos();
+    let x_range = (sub_pos.x - POS_RANGE)..(sub_pos.x + POS_RANGE);
+    let y_range = (sub_pos.y - POS_RANGE)..(sub_pos.y + POS_RANGE);
+    let z_range = (sub_pos.z - POS_RANGE)..(sub_pos.z + POS_RANGE_Z);
+
     cgmath::Vector3::new(
-        rng.gen_range(-POS_RANGE..POS_RANGE),
-        rng.gen_range(-POS_RANGE..POS_RANGE),
-        rng.gen_range(-POS_RANGE..POS_RANGE_Z),
+        rng.gen_range(x_range),
+        rng.gen_range(y_range),
+        rng.gen_range(z_range),
     )
 }
+
+fn safe_normalize(v: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
+    let mag = v.magnitude();
+    if mag == 0.0 { v } else { v / mag }
+}
+
+fn safe_normalize_to(v: cgmath::Vector3<f32>, target: f32) -> cgmath::Vector3<f32> {
+   safe_normalize(v) * target
+}
+
+
 
 
 struct PerSpecies {
@@ -147,6 +160,7 @@ pub struct BoidManager {
 }
 impl BoidManager {
     pub fn new(
+        sub: &sub::Sub,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_bind_group_layout: &wgpu::BindGroupLayout,
@@ -161,12 +175,12 @@ impl BoidManager {
         for species in &ALL_SPECIES {
             let mut insts = Vec::with_capacity(NUM_BOIDS);
             for _ in 0..NUM_BOIDS {
-                let position = random_pos(&mut rng);
-                let velocity = cgmath::Vector3::new(
+                let position = random_pos(&mut rng, sub);
+                let velocity = safe_normalize_to(cgmath::Vector3::new(
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
-                ).normalize_to(rng.gen_range(MIN_SPEED..MAX_SPEED));
+                ), rng.gen_range(MIN_SPEED..MAX_SPEED));
 
                 let boid = Boid::new(position, velocity, *species);
 
