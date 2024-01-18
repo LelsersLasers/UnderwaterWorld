@@ -10,11 +10,11 @@ const PERCEPTION_RADIUS: f32 = 6.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 5;
-const WALL_FORCE_MULT: f32 = 20.0;
+const WALL_FORCE_MULT: f32 = 10.0;
 
 const MAX_STEER_FORCE: f32 = 6.0;
 
-const NUM_BOIDS: usize = 300;
+const NUM_BOIDS: usize = 200;
 
 const FISH_SCALE: f32 = 0.75;
 
@@ -104,9 +104,9 @@ impl Boid {
         // ];
         // let chunk = sub.chunk();
 
-        let x_i32 = self.position.x as i32;
-        let y_i32 = self.position.y as i32;
-        let z_i32 = self.position.z as i32;
+        let x_i32 = self.position.x.round() as i32;
+        let y_i32 = self.position.y.round() as i32;
+        let z_i32 = self.position.z.round() as i32;
 
         for x in (x_i32 - WALL_RANGE)..(x_i32 + WALL_RANGE) {
             for y in (y_i32 - WALL_RANGE)..(y_i32 + WALL_RANGE) {
@@ -116,9 +116,9 @@ impl Boid {
                         continue;
                     }
 
-                    let world_x = x / chunk::CHUNK_SIZE as i32;
-                    let world_y = y / chunk::CHUNK_SIZE as i32;
-                    let world_z = z / chunk::CHUNK_SIZE as i32;
+                    let world_x = (x as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
+                    let world_y = (y as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
+                    let world_z = (z as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
                     let chunk_pos = (world_x, world_y, world_z);
 
                     let chunk = match world.get_chunk(chunk_pos) {
@@ -126,10 +126,14 @@ impl Boid {
                         None => continue,
                     };
 
-                    let chunk_x = x.rem_euclid(chunk::CHUNK_SIZE as i32) as usize;
-                    let chunk_y = y.rem_euclid(chunk::CHUNK_SIZE as i32) as usize;
-                    let chunk_z = z.rem_euclid(chunk::CHUNK_SIZE as i32) as usize;
-                    let local_pos = (chunk_x, chunk_y, chunk_z);
+                    let chunk_x = x - world_x * chunk::CHUNK_SIZE as i32;
+                    let chunk_y = y - world_y * chunk::CHUNK_SIZE as i32;
+                    let chunk_z = z - world_z * chunk::CHUNK_SIZE as i32;
+                    let local_pos = (chunk_x as usize, chunk_y as usize, chunk_z as usize);
+
+                    if chunk_x < 0 || chunk_y < 0 || chunk_z < 0 {
+                        panic!("chunk pos: {:?}, local pos: {:?}", chunk_pos, local_pos);
+                    }
 
                     let tris = chunk.tris_at(local_pos);
 
