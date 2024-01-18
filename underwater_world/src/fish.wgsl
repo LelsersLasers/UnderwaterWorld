@@ -50,14 +50,21 @@ fn vs_main(
 
 //----------------------------------------------------------------------------//
 
+// srgb_color = ((rgb_color / 255 + 0.055) / 1.055) ^ 2.4
+fn color_convert_srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
+    let linear = (srgb + 0.055) / 1.055;
+    return pow(linear, vec3<f32>(2.4, 2.4, 2.4));
+}
+
+
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    // // let dist_value = clamp(in.dist, 0.0, 30.0) / 30.0;
-    // let dist_value = smoothstep(0.0, 40.0, in.dist);
-    // let dist = vec4<f32>(dist_value, dist_value, dist_value, dist_value);
-    // let fog_color = vec4<f32>(0.0, 0.1, 0.2, 1.0);
-    // let output = mix(textureSample(t_diffuse, s_diffuse, in.tex_coords), fog_color, dist);
-    // return output;
+    // let dist_value = clamp(in.dist, 0.0, 30.0) / 30.0;
+    let dist_value = smoothstep(0.0, 40.0, in.dist);
+    let dist = vec4<f32>(dist_value, dist_value, dist_value, dist_value);
+    let fog_color = vec4<f32>(color_convert_srgb_to_linear(vec3<f32>(0.0, 0.1, 0.2)), 1.0);
+    let output = mix(textureSample(t_diffuse, s_diffuse, in.tex_coords), fog_color, dist);
+    return output;
 
-    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    // return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }

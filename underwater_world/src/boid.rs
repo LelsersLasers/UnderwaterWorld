@@ -1,4 +1,4 @@
-use crate::{boid_obj, chunk, draw, sub, texture, world};
+use crate::{boid_obj, chunk, draw, sub, texture, util, world};
 use cgmath::{InnerSpace, Zero, EuclideanSpace, num_traits::Pow};
 use rand::prelude::*;
 use wgpu::util::DeviceExt;
@@ -9,13 +9,17 @@ const MAX_SPEED: f32 = 7.0;
 const PERCEPTION_RADIUS: f32 = 6.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
+const WALL_RANGE: i32 = 5;
+const WALL_FORCE_MULT: f32 = 20.0;
+
 const MAX_STEER_FORCE: f32 = 6.0;
 
-const NUM_BOIDS: usize = 400;
+const NUM_BOIDS: usize = 300;
 
 const FISH_SCALE: f32 = 0.75;
 
 const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
+const POS_RANGE_BOUNDS: f32 = 0.8;
 const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
 
 
@@ -64,7 +68,7 @@ impl Boid {
         }
     }
 
-    fn update(&mut self, sub: &sub::Sub, delta: f32) {
+    fn update(&mut self, sub: &sub::Sub, world: &world::World, delta: f32) {
         let mut acceleration = cgmath::Vector3::zero();
 
         if self.num_flockmates > 0 {
@@ -81,14 +85,70 @@ impl Boid {
 
         let sub_offset = sub.pos().to_vec() - self.position;
         let sub_distance = sub_offset.magnitude();
-        if sub_distance > POS_RANGE || sub_offset.z < -POS_RANGE_Z {
+        // TODO: avoid z range hack
+        if sub_distance > POS_RANGE * POS_RANGE_BOUNDS || sub_offset.z < -POS_RANGE_Z {
             let sub_force = self.steer_towards(sub_offset);
             acceleration += sub_force;
         }
 
+        // let chunk_tris = HashMap::new();
+        // let chunk_offsets = [
+        //     (0, 0, 0),
+        //     (0, 0, 1),
+        //     (0, 1, 0),
+        //     (0, 1, 1),
+        //     (1, 0, 0),
+        //     (1, 0, 1),
+        //     (1, 1, 0),
+        //     (1, 1, 1),
+        // ];
+        // let chunk = sub.chunk();
+
+        let x_i32 = self.position.x as i32;
+        let y_i32 = self.position.y as i32;
+        let z_i32 = self.position.z as i32;
+
+        for x in (x_i32 - WALL_RANGE)..(x_i32 + WALL_RANGE) {
+            for y in (y_i32 - WALL_RANGE)..(y_i32 + WALL_RANGE) {
+                for z in (z_i32 - WALL_RANGE)..(z_i32 + WALL_RANGE) {
+                    let dist_sq = (x - x_i32).pow(2) + (y - y_i32).pow(2) + (z - z_i32).pow(2);
+                    if dist_sq > WALL_RANGE.pow(2) {
+                        continue;
+                    }
+
+                    let world_x = x / chunk::CHUNK_SIZE as i32;
+                    let world_y = y / chunk::CHUNK_SIZE as i32;
+                    let world_z = z / chunk::CHUNK_SIZE as i32;
+                    let chunk_pos = (world_x, world_y, world_z);
+
+                    let chunk = match world.get_chunk(chunk_pos) {
+                        Some(chunk) => chunk,
+                        None => continue,
+                    };
+
+                    let chunk_x = x.rem_euclid(chunk::CHUNK_SIZE as i32) as usize;
+                    let chunk_y = y.rem_euclid(chunk::CHUNK_SIZE as i32) as usize;
+                    let chunk_z = z.rem_euclid(chunk::CHUNK_SIZE as i32) as usize;
+                    let local_pos = (chunk_x, chunk_y, chunk_z);
+
+                    let tris = chunk.tris_at(local_pos);
+
+                    for tri in tris {
+                        let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
+                        if t.is_some() {
+                            let normal = tri.normal;
+                            let force = self.steer_towards(normal) * WALL_FORCE_MULT;
+                            acceleration += force;
+                        }
+                    }
+
+                }
+            }
+        }
+
         self.velocity += acceleration * delta;
         let target_speed = self.velocity.magnitude().min(MAX_SPEED).max(MIN_SPEED);
-        self.velocity = safe_normalize_to(self.velocity, target_speed);
+        self.velocity = util::safe_normalize_to(self.velocity, target_speed);
 
         self.position += self.velocity * delta;
 
@@ -96,9 +156,9 @@ impl Boid {
     }
 
     fn steer_towards(&self, target: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
-        let v = safe_normalize_to(target, MAX_SPEED) - self.velocity;
+        let v = util::safe_normalize_to(target, MAX_SPEED) - self.velocity;
         let v_mag = v.magnitude().min(MAX_STEER_FORCE);
-        safe_normalize_to(v, v_mag)
+        util::safe_normalize_to(v, v_mag)
     }
 }
 
@@ -129,17 +189,6 @@ fn random_pos(rng: &mut ThreadRng, sub: &sub::Sub) -> cgmath::Vector3<f32> {
         rng.gen_range(z_range),
     )
 }
-
-fn safe_normalize(v: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
-    let mag = v.magnitude();
-    if mag == 0.0 { v } else { v / mag }
-}
-
-fn safe_normalize_to(v: cgmath::Vector3<f32>, target: f32) -> cgmath::Vector3<f32> {
-   safe_normalize(v) * target
-}
-
-
 
 
 struct PerSpecies {
@@ -176,7 +225,7 @@ impl BoidManager {
             let mut insts = Vec::with_capacity(NUM_BOIDS);
             for _ in 0..NUM_BOIDS {
                 let position = random_pos(&mut rng, sub);
-                let velocity = safe_normalize_to(cgmath::Vector3::new(
+                let velocity = util::safe_normalize_to(cgmath::Vector3::new(
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
@@ -304,7 +353,7 @@ impl BoidManager {
         Self { boids, per_species }
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, sub: &sub::Sub, delta: f32) {
+    pub fn update(&mut self, queue: &wgpu::Queue, sub: &sub::Sub, world: &world::World, delta: f32) {
         for boid in self.boids.iter_mut() {
             boid.num_flockmates = 0;
             boid.sum_flock_heading = cgmath::Vector3::zero();
@@ -351,7 +400,7 @@ impl BoidManager {
 
         let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
         for boid in self.boids.iter_mut() {
-            boid.update(sub, delta);
+            boid.update(sub, world, delta);
             insts[boid.species as usize].push(boid.inst);
         }
 

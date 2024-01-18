@@ -6,6 +6,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 - 3d fish/boids
     - Obstacle avoidance
+    - Not spawn in walls
     - Render
         - Animation: wiggle shader
         - Distance shader
