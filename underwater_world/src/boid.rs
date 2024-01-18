@@ -91,19 +91,6 @@ impl Boid {
             acceleration += sub_force;
         }
 
-        // let chunk_tris = HashMap::new();
-        // let chunk_offsets = [
-        //     (0, 0, 0),
-        //     (0, 0, 1),
-        //     (0, 1, 0),
-        //     (0, 1, 1),
-        //     (1, 0, 0),
-        //     (1, 0, 1),
-        //     (1, 1, 0),
-        //     (1, 1, 1),
-        // ];
-        // let chunk = sub.chunk();
-
         let x_i32 = self.position.x.round() as i32;
         let y_i32 = self.position.y.round() as i32;
         let z_i32 = self.position.z.round() as i32;
