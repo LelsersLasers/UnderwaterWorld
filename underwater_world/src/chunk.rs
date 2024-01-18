@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
 pub const CHUNK_SIZE: usize = 16;
-const PERLIN_OCTAVES: u32 = 3;
-const ISO_LEVEL: f32 = -0.1;
-const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
+pub const PERLIN_OCTAVES: u32 = 3;
+pub const ISO_LEVEL: f32 = -0.1;
+pub const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
 
 
 // space of 16x16x16
@@ -36,9 +36,6 @@ impl Chunk {
 						(x as i32 + chunk_offset[0]) as f64 / CHUNK_SIZE as f64,
 						(y as i32 + chunk_offset[1]) as f64 / CHUNK_SIZE as f64,
 						(z as i32 + chunk_offset[2]) as f64 / CHUNK_SIZE as f64,
-						CHUNK_SIZE as f32,
-						PERLIN_OCTAVES,
-						MAX_HEIGHT
 					)
 				})
 			})

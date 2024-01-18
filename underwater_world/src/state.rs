@@ -410,7 +410,7 @@ impl State {
         let mut world = world::World::new();
         world.update_nearby(sub.chunk());
 
-        let boid_manager = boid::BoidManager::new(&sub, &device, &queue, &texture_bind_group_layout);
+        let boid_manager = boid::BoidManager::new(&sub, &perlin, &device, &queue, &texture_bind_group_layout);
         //--------------------------------------------------------------------//
 
         Self {

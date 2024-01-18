@@ -5,8 +5,9 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
-    - Obstacle avoidance
-    - Not spawn in walls
+    - Some sort of "wall force" or downward force to keep them from around z ~= 0
+    - Preformance: only exist in nearby chunks
+        - Either wrap boids, delete far away boids, or cause them to turn back towards the sub
     - Render
         - Animation: wiggle shader
         - Distance shader
@@ -14,9 +15,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - More than 2?
         - Fix red `vt`s?
         - Different type: ex: jellyfish
-    - Some sort of "wall force" or downward force to keep them from around z ~= 0
-    - Preformance: only exist in nearby chunks
-        - Either wrap boids, delete far away boids, or cause them to turn back towards the sub
 - Better terrain generation
     - + Coloring terrain
     - More phsyically plausible

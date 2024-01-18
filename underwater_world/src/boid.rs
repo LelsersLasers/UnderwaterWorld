@@ -1,4 +1,4 @@
-use crate::{boid_obj, chunk, draw, sub, texture, util, world};
+use crate::{boid_obj, chunk, draw, perlin_util, sub, texture, util, world};
 use cgmath::{InnerSpace, Zero, EuclideanSpace, num_traits::Pow};
 use rand::prelude::*;
 use wgpu::util::DeviceExt;
@@ -18,6 +18,8 @@ const MAX_STEER_FORCE: f32 = 4.0;
 const NUM_BOIDS: usize = 150;
 
 const FISH_SCALE: f32 = 0.75;
+
+const ISO_PADDING: f32 = 0.1;
 
 const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
 const POS_RANGE_BOUNDS: f32 = 0.8;
@@ -178,17 +180,29 @@ fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw
     draw::Instance::new(mat)
 }
 
-fn random_pos(rng: &mut ThreadRng, sub: &sub::Sub) -> cgmath::Vector3<f32> {
+fn random_pos(rng: &mut ThreadRng, perlin: &noise::Perlin, sub: &sub::Sub) -> cgmath::Vector3<f32> {
     let sub_pos = sub.pos();
-    let x_range = (sub_pos.x - POS_RANGE)..(sub_pos.x + POS_RANGE);
-    let y_range = (sub_pos.y - POS_RANGE)..(sub_pos.y + POS_RANGE);
-    let z_range = (sub_pos.z - POS_RANGE)..(sub_pos.z + POS_RANGE_Z);
 
-    cgmath::Vector3::new(
-        rng.gen_range(x_range),
-        rng.gen_range(y_range),
-        rng.gen_range(z_range),
-    )
+    loop {
+        let x_range = (sub_pos.x - POS_RANGE)..(sub_pos.x + POS_RANGE);
+        let y_range = (sub_pos.y - POS_RANGE)..(sub_pos.y + POS_RANGE);
+        let z_range = (sub_pos.z - POS_RANGE)..(sub_pos.z + POS_RANGE_Z);
+        let pos = cgmath::Vector3::new(
+            rng.gen_range(x_range),
+            rng.gen_range(y_range),
+            rng.gen_range(z_range),
+        );
+
+        let iso = perlin_util::iso_at(
+            perlin,
+            pos.x as f64 / chunk::CHUNK_SIZE as f64,
+            pos.y as f64 / chunk::CHUNK_SIZE as f64,
+            pos.z as f64 / chunk::CHUNK_SIZE as f64,
+        );
+        if iso > chunk::ISO_LEVEL + ISO_PADDING {
+            return pos;
+        }
+    }
 }
 
 
@@ -211,6 +225,7 @@ pub struct BoidManager {
 impl BoidManager {
     pub fn new(
         sub: &sub::Sub,
+        perlin: &noise::Perlin,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_bind_group_layout: &wgpu::BindGroupLayout,
@@ -225,7 +240,7 @@ impl BoidManager {
         for species in &ALL_SPECIES {
             let mut insts = Vec::with_capacity(NUM_BOIDS);
             for _ in 0..NUM_BOIDS {
-                let position = random_pos(&mut rng, sub);
+                let position = random_pos(&mut rng, perlin, sub);
                 let velocity = util::safe_normalize_to(cgmath::Vector3::new(
                     rng.gen_range(-1.0..1.0),
                     rng.gen_range(-1.0..1.0),
