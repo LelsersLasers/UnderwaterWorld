@@ -5,7 +5,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
-    - Some sort of "wall force" or downward force to keep them from around z ~= 0
     - Preformance: only exist in nearby chunks
         - Either wrap boids, delete far away boids, or cause them to turn back towards the sub
     - Render

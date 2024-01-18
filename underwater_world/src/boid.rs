@@ -9,11 +9,12 @@ const MAX_SPEED: f32 = 6.0;
 const PERCEPTION_RADIUS: f32 = 6.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
-const WALL_RANGE: i32 = 5;
-const WALL_FORCE_MULT: f32 = 4.0;
+const WALL_RANGE: i32 = 4;
+const WALL_FORCE_MULT: f32 = 3.0;
 // Note: max wall force is WALL_FORCE_MULT * WALL_RANGE
-
 const MAX_STEER_FORCE: f32 = 4.0;
+
+const DOWN_STEER_MULT: f32 = -0.1;
 
 const NUM_BOIDS: usize = 150;
 
@@ -93,6 +94,9 @@ impl Boid {
             let sub_force = self.steer_towards(sub_offset);
             acceleration += sub_force;
         }
+
+        let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
+        acceleration += down_force;
 
         let x_i32 = self.position.x.round() as i32;
         let y_i32 = self.position.y.round() as i32;
