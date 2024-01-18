@@ -11,6 +11,7 @@ mod sub;
 mod sub_obj;
 mod texture;
 mod timer;
+mod util;
 mod world;
 
 #[cfg(target_arch = "wasm32")]

@@ -1,4 +1,5 @@
-use crate::{marching_table, draw, perlin_util};
+use crate::{marching_table, draw, perlin_util, util};
+use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
 pub const CHUNK_SIZE: usize = 16;
@@ -10,6 +11,7 @@ const MAX_HEIGHT: f32 = (CHUNK_SIZE * 3) as f32;
 // space of 16x16x16
 pub struct Chunk {
 	num_verts: usize,
+    tris: HashMap<(usize, usize, usize), Vec<util::Tri>>,
 	verts_buffer: Option<wgpu::Buffer>,
 }
 
@@ -45,6 +47,8 @@ impl Chunk {
 		};
 
         let mut verts = Vec::new();
+        let mut tris = HashMap::new();
+
 
 		for x in 0..CHUNK_SIZE {
 			for y in 0..CHUNK_SIZE {
@@ -72,8 +76,15 @@ impl Chunk {
 
 					let indices = marching_table::TRIANGULATION[triangulation_idx];
 
-					for tri_index in indices.iter() {
+
+                    let mut pos_tris = Vec::with_capacity(indices.len() / 3);
+                    let mut current_tri = Vec::with_capacity(3);
+
+
+					for (i, tri_index) in indices.iter().enumerate() {
 						if *tri_index == -1 {
+                            let key = (x, y, z);
+                            tris.insert(key, pos_tris);
 							break;
 						}
 
@@ -114,6 +125,14 @@ impl Chunk {
 							[0.7, color_intensity, color_intensity],
 						);
 						verts.push(vert);
+
+
+                        current_tri.push(vert.pos);
+                        if i % 3 == 2 {
+                            let tri = util::Tri::new([current_tri[0], current_tri[1], current_tri[2]]);
+                            pos_tris.push(tri);
+                            current_tri.clear();
+                        }
 					}
 				}
 			}
@@ -123,21 +142,30 @@ impl Chunk {
 
         if num_verts > 0 {
             let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("{:?} Vertex Buffer", pos)),
+                label: Some(&format!("{:?} Chunk Vertex Buffer", pos)),
                 contents: bytemuck::cast_slice(&verts),
                 usage: wgpu::BufferUsages::VERTEX,
             });
             Self {
                 num_verts,
                 verts_buffer: Some(verts_buffer),
+                tris,
             }
         } else {
             Self {
                 num_verts,
                 verts_buffer: None,
+                tris,
             }
         }
 	}
+
+    pub fn tris_at(&self, pos: (usize, usize, usize)) -> &[util::Tri] {
+        match self.tris.get(&pos) {
+            Some(tris) => tris,
+            None => &[],
+        }
+    }
 
     pub fn not_blank(&self) -> bool { self.verts_buffer.is_some() }
     // only call if self is not blank

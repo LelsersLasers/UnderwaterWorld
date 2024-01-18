@@ -463,7 +463,7 @@ impl State {
 
         self.world.update(&self.sub, &self.perlin, &self.device);
 
-        self.boid_manager.update(&self.queue, &self.sub, delta as f32);
+        self.boid_manager.update(&self.queue, &self.sub, &self.world, delta as f32);
 
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }
