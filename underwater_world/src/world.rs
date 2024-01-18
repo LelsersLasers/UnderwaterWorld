@@ -1,7 +1,7 @@
 use crate::{chunk, sub};
 use std::collections::HashMap;
 
-pub const VIEW_DIST: i32 = 4;
+pub const VIEW_DIST: i32 = 3;
 
 
 pub struct World {

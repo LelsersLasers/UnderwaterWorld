@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 pub const CHUNK_SIZE: usize = 16;
 const PERLIN_OCTAVES: u32 = 3;
 const ISO_LEVEL: f32 = -0.1;
-const MAX_HEIGHT: f32 = (CHUNK_SIZE * 3) as f32;
+const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
 
 
 // space of 16x16x16
@@ -31,14 +31,15 @@ impl Chunk {
 		let isos = (0..CHUNK_SIZE + 1).flat_map(|x| {
 			(0..CHUNK_SIZE + 1).flat_map(move |y| {
 				(0..CHUNK_SIZE + 1).map(move |z| {
-                    let h = z as i32 + chunk_offset[2];
-					let corner = [
+					perlin_util::iso_at(
+						perlin,
 						(x as i32 + chunk_offset[0]) as f64 / CHUNK_SIZE as f64,
 						(y as i32 + chunk_offset[1]) as f64 / CHUNK_SIZE as f64,
-						h as f64 / CHUNK_SIZE as f64,
-					];
-                    let p = perlin_util::perlin_3d_octaves(perlin, corner, PERLIN_OCTAVES) as f32;
-                    p + (h as f32 / MAX_HEIGHT)
+						(z as i32 + chunk_offset[2]) as f64 / CHUNK_SIZE as f64,
+						CHUNK_SIZE as f32,
+						PERLIN_OCTAVES,
+						MAX_HEIGHT
+					)
 				})
 			})
 		}).collect::<Vec<f32>>();

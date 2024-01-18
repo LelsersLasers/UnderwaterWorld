@@ -18,3 +18,9 @@ pub fn perlin_3d_octaves(perlin: &noise::Perlin, point: [f64; 3], octaves: u32) 
 
     total / max_value
 }
+
+pub fn iso_at(perlin: &noise::Perlin, x: f64, y: f64, z: f64, chunk_size: f32, octaves: u32, max_height: f32) -> f32 {
+    let corner = [x, y, z];
+    let p = perlin_3d_octaves(perlin, corner, octaves) as f32;
+    p + (z as f32 * chunk_size / max_height)
+}
