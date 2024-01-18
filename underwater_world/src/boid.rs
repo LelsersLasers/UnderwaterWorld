@@ -4,17 +4,18 @@ use rand::prelude::*;
 use wgpu::util::DeviceExt;
 
 const MIN_SPEED: f32 = 3.0;
-const MAX_SPEED: f32 = 7.0;
+const MAX_SPEED: f32 = 6.0;
 
 const PERCEPTION_RADIUS: f32 = 6.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 5;
-const WALL_FORCE_MULT: f32 = 10.0;
+const WALL_FORCE_MULT: f32 = 4.0;
+// Note: max wall force is WALL_FORCE_MULT * WALL_RANGE
 
-const MAX_STEER_FORCE: f32 = 6.0;
+const MAX_STEER_FORCE: f32 = 4.0;
 
-const NUM_BOIDS: usize = 200;
+const NUM_BOIDS: usize = 150;
 
 const FISH_SCALE: f32 = 0.75;
 
@@ -95,6 +96,9 @@ impl Boid {
         let y_i32 = self.position.y.round() as i32;
         let z_i32 = self.position.z.round() as i32;
 
+        let mut closest_t = None;
+        let mut closest_normal = None;
+
         for x in (x_i32 - WALL_RANGE)..(x_i32 + WALL_RANGE) {
             for y in (y_i32 - WALL_RANGE)..(y_i32 + WALL_RANGE) {
                 for z in (z_i32 - WALL_RANGE)..(z_i32 + WALL_RANGE) {
@@ -126,15 +130,21 @@ impl Boid {
 
                     for tri in tris {
                         let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
-                        if t.is_some() {
-                            let normal = tri.normal;
-                            let force = self.steer_towards(normal) * WALL_FORCE_MULT;
-                            acceleration += force;
+                        if let Some(t) = t {
+                            if closest_t.is_none() || t < closest_t.unwrap() {
+                                closest_t = Some(t);
+                                closest_normal = Some(tri.normal);
+                            }
                         }
                     }
-
                 }
             }
+        }
+
+        if let Some(normal) = closest_normal {
+            let t = closest_t.unwrap();
+            let force = self.steer_towards(normal) * WALL_FORCE_MULT * (WALL_RANGE as f32 - t);
+            acceleration += force;
         }
 
         self.velocity += acceleration * delta;
