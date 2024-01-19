@@ -11,10 +11,10 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - Animation: wiggle shader
         - Distance shader
     - Specicies
-        - More than 2?
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
-        - Different type: ex: jellyfish
+    - Performance
+        - 3d space partitioning
 - Better terrain generation
     - + Coloring terrain
     - More phsyically plausible
