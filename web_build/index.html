@@ -42,8 +42,8 @@
         function resize() {
             const canvas = document.getElementsByTagName("canvas")[0];
 
-            let max_width  = window.innerWidth - 4;
-            let max_height = window.innerHeight - 4;
+            let max_width  = window.innerWidth;
+            let max_height = window.innerHeight;
 
             let width = Math.min(max_width, max_height * 16 / 9);
             let height = Math.min(max_height, max_width * 9 / 16);
