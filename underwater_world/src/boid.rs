@@ -10,8 +10,10 @@ const PERCEPTION_RADIUS: f32 = 5.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 4;
-const WALL_FORCE_MULT: f32 = 4.0;
-// Note: max wall force is WALL_FORCE_MULT * WALL_RANGE
+const WALL_FORCE_MULT: f32 = 10.0;
+const WALL_FORCE_PANIC_RANGE: f32 = 0.5;
+const WALL_FORCE_PANIC_MULT: f32 = 3.0;
+
 const MAX_STEER_FORCE: f32 = 4.0;
 
 const DOWN_STEER_MULT: f32 = -0.15;
@@ -187,7 +189,10 @@ impl Boid {
 
         if let Some(normal) = closest_normal {
             let t = closest_t.unwrap();
-            let force = self.steer_towards(normal) * WALL_FORCE_MULT * (WALL_RANGE as f32 - t);
+            let mut force = self.steer_towards(normal) * WALL_FORCE_MULT;
+            if t < WALL_FORCE_PANIC_RANGE {
+                force *= WALL_FORCE_PANIC_MULT;
+            }
             acceleration += force;
         }
 
