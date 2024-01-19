@@ -14,7 +14,7 @@ const WALL_FORCE_MULT: f32 = 3.0;
 // Note: max wall force is WALL_FORCE_MULT * WALL_RANGE
 const MAX_STEER_FORCE: f32 = 4.0;
 
-const DOWN_STEER_MULT: f32 = -0.1;
+const DOWN_STEER_MULT: f32 = -0.15;
 
 const NUM_BOIDS: usize = 150;
 
