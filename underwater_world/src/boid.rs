@@ -6,17 +6,17 @@ use wgpu::util::DeviceExt;
 const MIN_SPEED: f32 = 3.0;
 const MAX_SPEED: f32 = 6.0;
 
-const PERCEPTION_RADIUS: f32 = 6.0;
+const PERCEPTION_RADIUS: f32 = 5.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 4;
-const WALL_FORCE_MULT: f32 = 3.0;
+const WALL_FORCE_MULT: f32 = 4.0;
 // Note: max wall force is WALL_FORCE_MULT * WALL_RANGE
 const MAX_STEER_FORCE: f32 = 4.0;
 
 const DOWN_STEER_MULT: f32 = -0.15;
 
-const NUM_BOIDS: usize = 150;
+const NUM_BOIDS: usize = 100;
 
 const FISH_SCALE: f32 = 0.75;
 
@@ -31,12 +31,14 @@ const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
 pub enum Species {
     Red = 0,
     Green = 1,
+    Blue = 2,
 }
-pub const ALL_SPECIES: [Species; 2] = [Species::Red, Species::Green];
+pub const ALL_SPECIES: [Species; 3] = [Species::Red, Species::Green, Species::Blue];
 const SPECIES_COUNT: usize = ALL_SPECIES.len();
 const SPECIES_TEXTURE_PATHS: [&str; SPECIES_COUNT] = [
     "red.jpg",
     "green.png",
+    "blue.jpg",
 ];
 
 struct Boid {
@@ -240,6 +242,7 @@ impl BoidManager {
 
         let diffuse_bytes_red = include_bytes!("red.jpg");
         let diffuse_bytes_green = include_bytes!("green.png");
+        let diffuse_bytes_blue = include_bytes!("blue.jpg");
 
         for species in &ALL_SPECIES {
             let mut insts = Vec::with_capacity(NUM_BOIDS);
@@ -260,6 +263,7 @@ impl BoidManager {
             let diffuse_texture = match species {
                 Species::Red   => texture::Texture::from_bytes(device, queue, diffuse_bytes_red,   SPECIES_TEXTURE_PATHS[*species as usize]).unwrap(),
                 Species::Green => texture::Texture::from_bytes(device, queue, diffuse_bytes_green, SPECIES_TEXTURE_PATHS[*species as usize]).unwrap(),
+                Species::Blue  => texture::Texture::from_bytes(device, queue, diffuse_bytes_blue,  SPECIES_TEXTURE_PATHS[*species as usize]).unwrap(),
             };
 
             let diffuse_bind_group = device.create_bind_group(
@@ -289,6 +293,7 @@ impl BoidManager {
             let obj = match species {
                 Species::Red   => boid_obj::RED_OBJ,
                 Species::Green => boid_obj::GREEN_OBJ,
+                Species::Blue  => boid_obj::BLUE_OBJ,
             };
 
             for line in obj.lines() {
@@ -300,11 +305,12 @@ impl BoidManager {
                         let y: f32 = split.next().unwrap().parse().unwrap();
                         let z: f32 = split.next().unwrap().parse().unwrap();
 
-                        let z_sign = match species {
-                            Species::Red   => 1.0,
-                            Species::Green => -1.0,
+                        let pos = match species {
+                            Species::Red   => [z, x, y],
+                            Species::Green => [z, x, -y],
+                            Species::Blue  => [-x, y, z],
                         };
-                        vert_poses.push([z, x, z_sign * y]);
+                        vert_poses.push(pos);
 
                         highest_v = highest_v.max(x.abs()).max(y.abs()).max(z.abs());
                     }
@@ -418,7 +424,7 @@ impl BoidManager {
             }
         }
 
-        let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
+        let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
         for boid in self.boids.iter_mut() {
             boid.update(sub, world, delta);
             insts[boid.species as usize].push(boid.inst);
