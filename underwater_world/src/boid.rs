@@ -19,6 +19,8 @@ const DOWN_STEER_MULT: f32 = -0.15;
 const NUM_BOIDS: usize = 100;
 // Note: this is the number of boids per species
 
+const WRAP_STRENGTH: f32 = 1.9;
+
 const FISH_SCALE: f32 = 0.75;
 
 const ISO_PADDING: f32 = 0.1;
@@ -97,12 +99,11 @@ impl Boid {
             acceleration += sub_force;
         }
         if sub_distance > POS_RANGE * POS_RANGE_BOUNDS {
-            let new_x = sub_offset.x * 2.0 + self.position.x;
-            let new_y = sub_offset.y * 2.0 + self.position.y;
+            let new_x = sub_offset.x * WRAP_STRENGTH + self.position.x;
+            let new_y = sub_offset.y * WRAP_STRENGTH + self.position.y;
 
             let new_z = self.position.z;
-            todo!("check perlin to make sure not placing boid in a wall");
-            // TODO: also check if the distance is caused by the z component, then steer towards the sub instead?
+            // TODO: z perlin check, rescale dist in case immeditally out of range again
 
             self.position = cgmath::Vector3::new(new_x, new_y, new_z);
         }
