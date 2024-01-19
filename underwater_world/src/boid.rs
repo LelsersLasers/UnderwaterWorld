@@ -25,8 +25,7 @@ const FISH_SCALE: f32 = 0.75;
 
 const ISO_PADDING: f32 = 0.1;
 
-const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32;
-const POS_RANGE_BOUNDS: f32 = 0.8;
+const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32 * 0.8;
 const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
 
 
@@ -98,14 +97,30 @@ impl Boid {
             let sub_force = self.steer_towards(sub_offset);
             acceleration += sub_force;
         }
-        if sub_distance > POS_RANGE * POS_RANGE_BOUNDS {
+        if sub_distance > POS_RANGE {
             let new_x = sub_offset.x * WRAP_STRENGTH + self.position.x;
             let new_y = sub_offset.y * WRAP_STRENGTH + self.position.y;
 
-            let new_z = self.position.z;
-            // TODO: z perlin check, rescale dist in case immeditally out of range again
+            let mut new_z = self.position.z;
+            let mut new_z_in_wall = true;
+            while new_z_in_wall {
+                let iso = perlin_util::iso_at(
+                    perlin,
+                    new_x as f64 / chunk::CHUNK_SIZE as f64,
+                    new_y as f64 / chunk::CHUNK_SIZE as f64,
+                    new_z as f64 / chunk::CHUNK_SIZE as f64,
+                );
+                if iso > chunk::ISO_LEVEL + ISO_PADDING {
+                    new_z_in_wall = false;
+                } else {
+                    new_z += 1.0;
+                }
+            }
 
-            self.position = cgmath::Vector3::new(new_x, new_y, new_z);
+            let new_pos = cgmath::Vector3::new(new_x, new_y, new_z);
+            self.position = new_pos;
+
+            // TODO: rescale dist in case immeditally out of range again (then would need to z check again...)
         }
 
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
