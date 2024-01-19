@@ -76,20 +76,9 @@ impl Boid {
         }
     }
 
-    fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
+    fn wrap(&mut self, sub: &sub::Sub, perlin: &noise::Perlin) -> (cgmath::Vector3<f32>, bool) {
         let mut acceleration = cgmath::Vector3::zero();
-
-        if self.num_flockmates > 0 {
-            let center_offset = self.sum_flock_center / self.num_flockmates as f32 - self.position;
-
-            let separation_force = self.steer_towards(self.sum_flock_separation);
-            let alignment_force = self.steer_towards(self.sum_flock_heading);
-            let cohesion_force = self.steer_towards(center_offset);
-
-            acceleration += separation_force;
-            acceleration += alignment_force;
-            acceleration += cohesion_force;
-        }
+        let mut wrapped = false;
 
         let sub_offset = sub.pos().to_vec() - self.position;
         let sub_distance = sub_offset.magnitude();
@@ -98,6 +87,8 @@ impl Boid {
             acceleration += sub_force;
         }
         if sub_distance > POS_RANGE {
+            wrapped = true;
+
             let new_x = sub_offset.x * WRAP_STRENGTH + self.position.x;
             let new_y = sub_offset.y * WRAP_STRENGTH + self.position.y;
 
@@ -119,8 +110,31 @@ impl Boid {
 
             let new_pos = cgmath::Vector3::new(new_x, new_y, new_z);
             self.position = new_pos;
+        }
 
-            // TODO: rescale dist in case immeditally out of range again (then would need to z check again...)
+        (acceleration, wrapped)
+    }
+
+    fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
+        let mut acceleration = cgmath::Vector3::zero();
+
+        if self.num_flockmates > 0 {
+            let center_offset = self.sum_flock_center / self.num_flockmates as f32 - self.position;
+
+            let separation_force = self.steer_towards(self.sum_flock_separation);
+            let alignment_force = self.steer_towards(self.sum_flock_heading);
+            let cohesion_force = self.steer_towards(center_offset);
+
+            acceleration += separation_force;
+            acceleration += alignment_force;
+            acceleration += cohesion_force;
+        }
+
+        let mut should_try_wrap = true;
+        while should_try_wrap {
+            let (wrap_force, wrapped) = self.wrap(sub, perlin);
+            should_try_wrap = wrapped;
+            acceleration += wrap_force;
         }
 
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
