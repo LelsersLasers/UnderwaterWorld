@@ -5,6 +5,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
+    - Speration by species increased
     - Preformance: only exist in nearby chunks
         - Either wrap boids, delete far away boids, or cause them to turn back towards the sub
     - Render
