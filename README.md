@@ -5,12 +5,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
-    - Preformance: only exist in nearby chunks, wrap boids
-        - If out of range, wrap to other side of the range
-            - Wrap x and y
-        - Adjust z based on perlin iso to make sure not placing in a wall
-            - Then rescale postion to be within the offset
-                - (it might not be because the z was not uniformly wrapped)
     - Render
         - Animation: wiggle shader
         - Distance shader
