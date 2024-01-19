@@ -17,6 +17,7 @@ const MAX_STEER_FORCE: f32 = 4.0;
 const DOWN_STEER_MULT: f32 = -0.15;
 
 const NUM_BOIDS: usize = 100;
+// Note: this is the number of boids per species
 
 const FISH_SCALE: f32 = 0.75;
 
@@ -74,7 +75,7 @@ impl Boid {
         }
     }
 
-    fn update(&mut self, sub: &sub::Sub, world: &world::World, delta: f32) {
+    fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
         let mut acceleration = cgmath::Vector3::zero();
 
         if self.num_flockmates > 0 {
@@ -91,10 +92,19 @@ impl Boid {
 
         let sub_offset = sub.pos().to_vec() - self.position;
         let sub_distance = sub_offset.magnitude();
-        // TODO: avoid z range hack
-        if sub_distance > POS_RANGE * POS_RANGE_BOUNDS || sub_offset.z < -POS_RANGE_Z {
+        if sub_offset.z < -POS_RANGE_Z {
             let sub_force = self.steer_towards(sub_offset);
             acceleration += sub_force;
+        }
+        if sub_distance > POS_RANGE * POS_RANGE_BOUNDS {
+            let new_x = sub_offset.x * 2.0 + self.position.x;
+            let new_y = sub_offset.y * 2.0 + self.position.y;
+
+            let new_z = self.position.z;
+            todo!("check perlin to make sure not placing boid in a wall");
+            // TODO: also check if the distance is caused by the z component, then steer towards the sub instead?
+
+            self.position = cgmath::Vector3::new(new_x, new_y, new_z);
         }
 
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
@@ -129,10 +139,6 @@ impl Boid {
                     let chunk_y = y - world_y * chunk::CHUNK_SIZE as i32;
                     let chunk_z = z - world_z * chunk::CHUNK_SIZE as i32;
                     let local_pos = (chunk_x as usize, chunk_y as usize, chunk_z as usize);
-
-                    if chunk_x < 0 || chunk_y < 0 || chunk_z < 0 {
-                        panic!("chunk pos: {:?}, local pos: {:?}", chunk_pos, local_pos);
-                    }
 
                     let tris = chunk.tris_at(local_pos);
 
@@ -379,7 +385,7 @@ impl BoidManager {
         Self { boids, per_species }
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, sub: &sub::Sub, world: &world::World, delta: f32) {
+    pub fn update(&mut self, queue: &wgpu::Queue, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
         for boid in self.boids.iter_mut() {
             boid.num_flockmates = 0;
             boid.sum_flock_heading = cgmath::Vector3::zero();
@@ -426,7 +432,7 @@ impl BoidManager {
 
         let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
         for boid in self.boids.iter_mut() {
-            boid.update(sub, world, delta);
+            boid.update(perlin, sub, world, delta);
             insts[boid.species as usize].push(boid.inst);
         }
 
