@@ -404,7 +404,7 @@ impl BoidManager {
                         self.boids[i].sum_flock_center += boid_j_pos;
                     }
     
-                    if distance < AVOIDANCE_RADIUS {
+                    if i_species != j_species || distance < AVOIDANCE_RADIUS {
                         self.boids[i].sum_flock_separation -= offset / distance.pow(2);
                     }
                 }
