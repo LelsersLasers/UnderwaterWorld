@@ -313,7 +313,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &fish_shader,
                 entry_point: "vs_main",
-                buffers: &[draw::VertTex::desc(), draw::Instance::desc()],
+                buffers: &[draw::VertTex::desc(), draw::InstanceTime::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &fish_shader,

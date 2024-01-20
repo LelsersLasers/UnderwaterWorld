@@ -10,9 +10,9 @@ const PERCEPTION_RADIUS: f32 = 5.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 4;
-const WALL_FORCE_MULT: f32 = 10.0;
+const WALL_FORCE_MULT: f32 = 7.5;
 const WALL_FORCE_PANIC_RANGE: f32 = 0.5;
-const WALL_FORCE_PANIC_MULT: f32 = 3.0;
+const WALL_FORCE_PANIC_MULT: f32 = 4.0;
 
 const MAX_STEER_FORCE: f32 = 4.0;
 
@@ -57,11 +57,12 @@ struct Boid {
 
     species: Species,
 
-    inst: draw::Instance,
+    inst: draw::InstanceTime,
+    time: f32,
 }
 
 impl Boid {
-    fn new(position: cgmath::Vector3<f32>, velocity: cgmath::Vector3<f32>, species: Species) -> Self {
+    fn new(position: cgmath::Vector3<f32>, velocity: cgmath::Vector3<f32>, species: Species, time: f32) -> Self {
         Self {
             position,
             velocity,
@@ -74,7 +75,8 @@ impl Boid {
 
             species,
 
-            inst: pos_vel_to_inst(position, velocity),
+            inst: pos_vel_to_inst(position, velocity, time),
+            time,
         }
     }
 
@@ -201,8 +203,9 @@ impl Boid {
         self.velocity = util::safe_normalize_to(self.velocity, target_speed);
 
         self.position += self.velocity * delta;
+        self.time += delta;
 
-        self.inst = pos_vel_to_inst(self.position, self.velocity);
+        self.inst = pos_vel_to_inst(self.position, self.velocity, self.time);
     }
 
     fn steer_towards(&self, target: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
@@ -212,7 +215,7 @@ impl Boid {
     }
 }
 
-fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw::Instance {
+fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>, time: f32) -> draw::InstanceTime {
     let xy_rot_quat = cgmath::Quaternion::from_arc(
         cgmath::Vector3::unit_x(),
         cgmath::Vector3::new(vel.x, vel.y, 0.0),
@@ -224,7 +227,7 @@ fn pos_vel_to_inst(pos: cgmath::Vector3<f32>, vel: cgmath::Vector3<f32>) -> draw
         None,
     );
     let mat = cgmath::Matrix4::from_translation(pos) * cgmath::Matrix4::from(z_rot_quat) * cgmath::Matrix4::from(xy_rot_quat);
-    draw::Instance::new(mat)
+    draw::InstanceTime::new(mat, time)
 }
 
 fn random_pos(rng: &mut ThreadRng, perlin: &noise::Perlin, sub: &sub::Sub) -> cgmath::Vector3<f32> {
@@ -295,7 +298,8 @@ impl BoidManager {
                     rng.gen_range(-1.0..1.0),
                 ), rng.gen_range(MIN_SPEED..MAX_SPEED));
 
-                let boid = Boid::new(position, velocity, *species);
+                let time = rng.gen_range(0.0..std::f32::consts::PI * 2.0);
+                let boid = Boid::new(position, velocity, *species, time);
 
                 insts.push(boid.inst);
                 boids.push(boid);

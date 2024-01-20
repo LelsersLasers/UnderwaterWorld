@@ -7,7 +7,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - 3d fish/boids
     - Render
         - Animation: wiggle shader
-        - Distance shader
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?

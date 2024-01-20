@@ -20,6 +20,7 @@ struct InstanceInput {
     @location(6) model_matrix_1: vec4<f32>,
     @location(7) model_matrix_2: vec4<f32>,
     @location(8) model_matrix_3: vec4<f32>,
+    @location(9) time: f32,
 };
 
 struct VertexOutput {
@@ -41,9 +42,22 @@ fn vs_main(
         instance.model_matrix_3,
     );
 
+
+    let x = model.position.x + sin((model.position.x + instance.time * 1.0) * 5.2) * 0.05;
+    let y = model.position.y + sin((model.position.x + instance.time * 1.0) * 5.2) * 0.05;
+    let z = model.position.z + sin((model.position.x + instance.time * 1.0) * 5.2) * 0.05;
+
+    let pos = vec4<f32>(x, y, z, 1.0);
+
+    // model.position.x += sin((model.position.z + instance.time * 1.0) * 0.2) * 0.05;
+    // model.position.y += sin((model.position.z + instance.time * 1.0) * 0.2) * 0.05;
+    // model.position.z += sin((model.position.z + instance.time * 1.0) * 0.2) * 0.05;	
+
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
-    out.clip_position = camera.view_proj * model_matrix * vec4<f32>(model.position, 1.0);
+    out.clip_position = camera.view_proj * model_matrix * pos;
+    // out.clip_position = camera.view_proj * pos;
+    // out.clip_position = camera.view_proj * model_matrix * vec4<f32>(model.position, 1.0);
     out.dist = length(out.clip_position.xyz);
     return out;
 }
