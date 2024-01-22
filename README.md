@@ -5,31 +5,32 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
+    - Performance
+        - 3d space partitioning
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
-    - Performance
-        - 3d space partitioning
-- Better terrain generation
-    - + Coloring terrain
-    - More phsyically plausible
-- Resizing
-- Collisions with walls?
-    - Sub is hard to control + might be frustrating to get stuck in dead end caves
-    - But the upside is you just go through walls
 - Text
     - FPS
     - 99% fps
     - Posistion
     - Bearing
+- Resizing
+- Better terrain generation
+    - Coloring terrain
+    - More phsyically plausible
 - Propeller bubbles
 - Shader/lighting effects
     - Fog
     - Lighting
     - Darker the deeper
         - Scale clear color/fog color with sub depth
+        - Make sure the html background also updates
     - If no wall collisions then void plane to make it obvious you are below
- - Web build
+- Collisions with walls?
+    - Sub is hard to control + might be frustrating to get stuck in dead end caves
+    - But the upside is you just go through walls
+- Web build
 
 ## Controls
 
