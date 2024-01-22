@@ -1,7 +1,7 @@
 use crate::{chunk, world};
 use cgmath::SquareMatrix;
 
-const Z_NEAR: f32 = 3.0;
+const Z_NEAR: f32 = 2.0;
 const Z_FAR: f32 = chunk::CHUNK_SIZE as f32 * (world::VIEW_DIST + 1) as f32;
 const FOVY: f32 = 45.0;
 

@@ -29,6 +29,19 @@ struct VertexOutput {
     @location(1) dist: f32,
 }
 
+const HEAD_X: f32 = 0.0;
+const HEAD_AMP: f32 = 0.01;
+
+const SPEED_Z: f32 = 1.5;
+const FREQ_Z: f32 = 2.0;
+const AMP_Z: f32 = 0.02;
+
+const AMP_X: f32 = 0.04;
+const AMP_Y: f32 = 0.075;
+
+const SPEED_X_Y: f32 = 4.0;
+const FREQ_X_Y: f32 = 2.0;
+
 @vertex
 fn vs_main(
     model: VertexInput,
@@ -42,22 +55,20 @@ fn vs_main(
         instance.model_matrix_3,
     );
 
+    let wave_x_y = sin((model.position.x + instance.time * SPEED_X_Y) * FREQ_X_Y);
+    let wave_z =   sin((model.position.x + instance.time * SPEED_Z)   * FREQ_Z  );
 
-    let x = model.position.x + sin((model.position.x + instance.time * 1.0) * 5.2) * 0.05;
-    let y = model.position.y + sin((model.position.x + instance.time * 1.0) * 5.2) * 0.05;
-    let z = model.position.z + sin((model.position.x + instance.time * 1.0) * 5.2) * 0.05;
+    let amp_x = f32(model.position.x > HEAD_X) * HEAD_AMP + f32(model.position.x <= HEAD_X) * AMP_X;
+    let amp_y = f32(model.position.x > HEAD_X) * HEAD_AMP + f32(model.position.x <= HEAD_X) * AMP_Y;
 
+    let x = model.position.x + wave_x_y * amp_x;
+    let y = model.position.y + wave_x_y * amp_y;
+    let z = model.position.z + wave_z * AMP_Z;
     let pos = vec4<f32>(x, y, z, 1.0);
-
-    // model.position.x += sin((model.position.z + instance.time * 1.0) * 0.2) * 0.05;
-    // model.position.y += sin((model.position.z + instance.time * 1.0) * 0.2) * 0.05;
-    // model.position.z += sin((model.position.z + instance.time * 1.0) * 0.2) * 0.05;	
 
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
     out.clip_position = camera.view_proj * model_matrix * pos;
-    // out.clip_position = camera.view_proj * pos;
-    // out.clip_position = camera.view_proj * model_matrix * vec4<f32>(model.position, 1.0);
     out.dist = length(out.clip_position.xyz);
     return out;
 }

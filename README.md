@@ -5,8 +5,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
-    - Render
-        - Animation: wiggle shader
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
@@ -21,6 +19,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - But the upside is you just go through walls
 - Text
     - FPS
+    - 99% fps
     - Posistion
     - Bearing
 - Propeller bubbles
@@ -50,3 +49,4 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## Resources
 
 - todo!()
+- https://github.com/albertomelladoc/Fish-Animation/blob/master/FishAnimation.shader

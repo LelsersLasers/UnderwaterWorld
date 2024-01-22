@@ -5,6 +5,7 @@ use wgpu::util::DeviceExt;
 
 const MIN_SPEED: f32 = 3.0;
 const MAX_SPEED: f32 = 6.0;
+const MIDDLE_SPEED: f32 = (MIN_SPEED + MAX_SPEED) / 2.0;
 
 const PERCEPTION_RADIUS: f32 = 5.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
@@ -16,7 +17,7 @@ const WALL_FORCE_PANIC_MULT: f32 = 4.0;
 
 const MAX_STEER_FORCE: f32 = 4.0;
 
-const DOWN_STEER_MULT: f32 = -0.15;
+const DOWN_STEER_MULT: f32 = -0.1;
 
 const NUM_BOIDS: usize = 100;
 // Note: this is the number of boids per species
@@ -199,11 +200,13 @@ impl Boid {
         }
 
         self.velocity += acceleration * delta;
-        let target_speed = self.velocity.magnitude().min(MAX_SPEED).max(MIN_SPEED);
+        let target_speed = self.velocity.magnitude().clamp(MIN_SPEED, MAX_SPEED);
         self.velocity = util::safe_normalize_to(self.velocity, target_speed);
 
         self.position += self.velocity * delta;
-        self.time += delta;
+
+        let wiggle = target_speed / MIDDLE_SPEED;
+        self.time += delta * wiggle;
 
         self.inst = pos_vel_to_inst(self.position, self.velocity, self.time);
     }
