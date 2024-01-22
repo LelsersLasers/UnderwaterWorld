@@ -10,10 +10,10 @@ const MIDDLE_SPEED: f32 = (MIN_SPEED + MAX_SPEED) / 2.0;
 const PERCEPTION_RADIUS: f32 = 5.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
-const WALL_RANGE: i32 = 4;
-const WALL_FORCE_MULT: f32 = 7.5;
+const WALL_RANGE: i32 = 3;
+const WALL_FORCE_MULT: f32 = 10.0;
 const WALL_FORCE_PANIC_RANGE: f32 = 0.5;
-const WALL_FORCE_PANIC_MULT: f32 = 4.0;
+const WALL_FORCE_PANIC_MULT: f32 = 2.0;
 
 const MAX_STEER_FORCE: f32 = 4.0;
 
@@ -145,12 +145,19 @@ impl Boid {
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
         acceleration += down_force;
 
-        let x_i32 = self.position.x.round() as i32;
-        let y_i32 = self.position.y.round() as i32;
-        let z_i32 = self.position.z.round() as i32;
+        let x_i32 = self.position.x.ceil() as i32;
+        let y_i32 = self.position.y.ceil() as i32;
+        let z_i32 = self.position.z.ceil() as i32;
 
         let mut closest_t = None;
         let mut closest_normal = None;
+
+
+        // TODO: sort and check in a more efficient way
+        // Try to find a way to break earlier
+        // let orderings = -WALL_RANGE..WALL_RANGE;
+        // let mut orderings = orderings.into_iter().collect::<Vec<i32>>();
+        // orderings.sort_by_key(|&x| x.abs());
 
         for x in (x_i32 - WALL_RANGE)..(x_i32 + WALL_RANGE) {
             for y in (y_i32 - WALL_RANGE)..(y_i32 + WALL_RANGE) {

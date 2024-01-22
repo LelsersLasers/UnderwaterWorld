@@ -7,6 +7,9 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - 3d fish/boids
     - Performance
         - 3d space partitioning
+            - Is this actually helpful??
+        - The slowest part is actually the raycasting/wall collision checks
+            - It runs great otherwise
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
