@@ -1,12 +1,14 @@
 use crate::{boid, camera, consts, draw, texture, timer, sub, world};
 use wgpu::util::DeviceExt;
 
-pub struct State {
+pub struct State<'a> {
     surface: wgpu::Surface,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
+
+    brush: wgpu_text::TextBrush<wgpu_text::glyph_brush::ab_glyph::FontRef<'a>>,
 
     terrain_render_pipeline: wgpu::RenderPipeline,
     sub_render_pipeline: wgpu::RenderPipeline,
@@ -40,7 +42,7 @@ pub struct State {
     window: winit::window::Window,
 }
 
-impl State {
+impl<'a> State<'a> {
     // Creating some of the wgpu types requires async code
     pub async fn new(window: winit::window::Window) -> Self {
         let size = window.inner_size();
@@ -133,6 +135,13 @@ impl State {
 
         //--------------------------------------------------------------------//
         let depth_texture = texture::Texture::create_depth_texture(&device, &config, "depth_texture");
+        //--------------------------------------------------------------------//
+
+        //--------------------------------------------------------------------//
+        let font = include_bytes!("Assistant-Medium.ttf");
+        let brush = wgpu_text::BrushBuilder::using_font_bytes(font)
+            .unwrap()
+            .build(&device, config.width, config.height, config.format);
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
@@ -420,6 +429,7 @@ impl State {
             queue,
             config,
             size,
+            brush,
             terrain_render_pipeline,
             sub_render_pipeline,
             fish_render_pipeline,
@@ -447,6 +457,8 @@ impl State {
             self.surface.configure(&self.device, &self.config);
 
             self.depth_texture = texture::Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
+
+            self.brush.resize_view(self.config.width as f32, self.config.height as f32, &self.queue);
         }
     }
 
@@ -542,6 +554,49 @@ impl State {
                 render_pass.draw(0..self.boid_manager.num_verts(*species) as u32, 0..self.boid_manager.num_inst(*species) as u32);
             }
             //----------------------------------------------------------------//
+        }
+        {
+            let mut brush_render_pass =
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Render Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+
+            let fps_text = format!("FPS: {:3.0}", self.fps_counter.fps());
+            let pos = self.sub.pos();
+            let pos_text = format!("POS: {:.0} {:.0} {:.0}", pos.x, pos.y, pos.z);
+            let bearing = self.sub.bearing();
+            let bearing_text = format!("BEARING: {:.3} {:.3} {:.3}", bearing.x, bearing.y, bearing.z);
+            let overall_text = format!("{}\n{}\n{}", fps_text, pos_text, bearing_text);
+
+            let selection = wgpu_text::glyph_brush::Section::default()
+                .add_text(wgpu_text::glyph_brush::Text::new(&overall_text)
+                    .with_scale(20.0)
+                    .with_color([236.0 / 255.0, 239.0 / 255.0, 244.0 / 255.0, 1.0])
+                )
+                .with_layout(
+                    wgpu_text::glyph_brush::Layout::default()
+                        .v_align(wgpu_text::glyph_brush::VerticalAlign::Top)
+                        .line_breaker(wgpu_text::glyph_brush::BuiltInLineBreaker::AnyCharLineBreaker),
+                )
+                .with_screen_position((50.0, 50.0))
+                .to_owned();
+
+
+            let _ = self.brush.queue(&self.device, &self.queue, vec![&selection]);
+
+            self.brush.draw(&mut brush_render_pass);
+            // self.brush.draw(&mut render_pass);
         }
         //--------------------------------------------------------------------//
 
