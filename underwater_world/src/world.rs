@@ -30,6 +30,9 @@ impl World {
         if sub_chunk != self.last_sub_chunk {
             self.update_nearby(sub_chunk);
         }
+        // self.update_nearby(sub_chunk);
+
+        // println!("chunks_to_generate: {}", self.chunks_to_generate.len());
 
         if let Some(pos) = self.chunks_to_generate.pop() {
             let chunk = chunk::Chunk::new(pos, perlin, device);
@@ -83,5 +86,9 @@ impl World {
 
     pub fn chunks_to_render(&self) -> &[(i32, i32, i32)] {
         &self.chunks_to_render
+    }
+
+    pub fn generate_count(&self) -> usize {
+        self.chunks_to_generate.len()
     }
 }

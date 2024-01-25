@@ -601,7 +601,8 @@ impl<'a> State<'a> {
             let pos_text = format!("POS: {:.0} {:.0} {:.0}", pos.x, pos.y, pos.z);
             let bearing = self.sub.bearing();
             let bearing_text = format!("BEARING: {:.3} {:.3} {:.3}", bearing.x, bearing.y, bearing.z);
-            let overall_text = format!("{}\n{}\n{}\n{}", fps_text, min_text, pos_text, bearing_text);
+            let generate_text = format!("GENERATE: {}", self.world.generate_count());
+            let overall_text = format!("{}\n{}\n{}\n{}\n{}", fps_text, min_text, pos_text, bearing_text, generate_text);
 
             let selection = wgpu_text::glyph_brush::Section::default()
                 .add_text(wgpu_text::glyph_brush::Text::new(&overall_text)
