@@ -17,9 +17,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Resizing
 - Preformance
     - What is making it slow on the web??
-    - Think it is the chunk generation
-        - Better throttling system?
-            - Right now it adds a bunch of chunks to generate at once instead of slowly adding them?
+    - Better throttle for chunk creation
 - Better terrain generation
     - And coloring terrain
     - And more phsyically plausible

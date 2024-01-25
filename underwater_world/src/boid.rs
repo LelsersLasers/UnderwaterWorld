@@ -1,5 +1,5 @@
 use crate::{boid_obj, chunk, draw, perlin_util, sub, texture, util, world};
-use cgmath::{InnerSpace, Zero, EuclideanSpace, num_traits::Pow};
+use cgmath::{InnerSpace, Zero, num_traits::Pow};
 use rand::prelude::*;
 use wgpu::util::DeviceExt;
 
@@ -22,13 +22,13 @@ const DOWN_STEER_MULT: f32 = -0.1;
 const NUM_BOIDS: usize = 100;
 // Note: this is the number of boids per species
 
-const WRAP_STRENGTH: f32 = 1.9;
+const WRAP_STRENGTH: f32 = 1.95;
 
 const FISH_SCALE: f32 = 0.75;
 
 const ISO_PADDING: f32 = 0.1;
 
-const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32 * 0.8;
+const POS_RANGE: f32 = 46.0;
 const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
 
 const NEW_Z_STEP: f32 = 2.0;
@@ -87,7 +87,7 @@ impl Boid {
         let mut acceleration = cgmath::Vector3::zero();
         let mut wrapped = false;
 
-        let sub_offset = sub.pos().to_vec() - self.position;
+        let sub_offset = sub.pos() - self.position;
         let sub_distance = sub_offset.magnitude();
         if sub_offset.z < -POS_RANGE_Z {
             let sub_force = self.steer_towards(sub_offset);
@@ -473,7 +473,7 @@ impl BoidManager {
                 }
             }
 
-            let offset = sub.pos().to_vec() - self.boids[i].position;
+            let offset = sub.pos() - self.boids[i].position;
             let distance = offset.magnitude();
 
             if distance < PERCEPTION_RADIUS {

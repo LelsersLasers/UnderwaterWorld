@@ -1,5 +1,9 @@
+use cgmath::InnerSpace;
+
 use crate::{chunk, sub};
 use std::collections::HashMap;
+
+pub const RECHECK_DIST: f32 = 4.0;
 
 pub const VIEW_DIST: i32 = 4;
 pub const MAX_Z: i32 = 2;
@@ -10,7 +14,7 @@ pub struct World {
     chunks: HashMap<(i32, i32, i32), chunk::Chunk>,
     chunks_to_render: Vec<(i32, i32, i32)>,
     chunks_to_generate: Vec<(i32, i32, i32)>,
-    last_sub_chunk: (i32, i32, i32),
+    last_sub_pos: cgmath::Vector3<f32>,
 }
 
 impl World {
@@ -19,7 +23,7 @@ impl World {
             chunks: HashMap::new(),
             chunks_to_render: Vec::new(),
             chunks_to_generate: Vec::new(),
-            last_sub_chunk: (i32::MAX, i32::MAX, i32::MAX),
+            last_sub_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
         }
     }
 
@@ -28,13 +32,22 @@ impl World {
     }
 
     pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
-        let sub_chunk = sub.chunk();
-        if sub_chunk != self.last_sub_chunk {
-            self.update_nearby(sub_chunk);
-        }
+        // let sub_chunk = sub.chunk();
+        // if sub_chunk != self.last_sub_chunk {
+        //     self.update_nearby(sub);
+        //     self.last_sub_chunk = sub_chunk;
+        // }
         // self.update_nearby(sub_chunk);
+        let dist = (sub.pos() - self.last_sub_pos).magnitude();
+        if dist > RECHECK_DIST {
+            self.update_nearby(sub);
+            self.last_sub_pos = sub.pos();
+            println!("update_nearby");
+        }
 
-        // println!("chunks_to_generate: {}", self.chunks_to_generate.len());
+        // self.update_nearby(sub);
+
+        println!("chunks_to_generate: {}", self.chunks_to_generate.len());
 
         if let Some(pos) = self.chunks_to_generate.pop() {
             let chunk = chunk::Chunk::new(pos, perlin, device);
@@ -46,26 +59,34 @@ impl World {
     }
 
 
-    pub fn update_nearby(&mut self, sub_chunk: (i32, i32, i32)) {
-        self.last_sub_chunk = sub_chunk;
-
+    pub fn update_nearby(&mut self, sub: &sub::Sub) {
         self.chunks_to_render.clear();
         self.chunks_to_generate.clear();
 
+        let sub_pos = sub.pos();
+        let sub_chunk = sub.chunk();
+
+        let max_dist = VIEW_DIST as f32 * chunk::CHUNK_SIZE as f32;
+
         for x in -VIEW_DIST..VIEW_DIST {
+            let chunk_x = sub_chunk.0 + x;
+
             for y in -VIEW_DIST..VIEW_DIST {
+                let chunk_y = sub_chunk.1 + y;
+
                 for z in -VIEW_DIST..VIEW_DIST {
                     let chunk_z = sub_chunk.2 + z;
                     if !(MIN_Z..=MAX_Z).contains(&chunk_z) { continue; }
 
-                    let dist = ((x.pow(2) + y.pow(2) + z.pow(2)) as f32).sqrt();
-                    if dist > VIEW_DIST as f32 { continue; }
-
-                    let chunk_pos = (
-                        sub_chunk.0 + x,
-                        sub_chunk.1 + y,
-                        chunk_z,
+                    let chunk_center = cgmath::Vector3::new(
+                        (chunk_x as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
+                        (chunk_y as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
+                        (chunk_z as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
                     );
+                    let dist = (sub_pos - chunk_center).magnitude();
+                    if dist > max_dist { continue; }
+
+                    let chunk_pos = (chunk_x, chunk_y, chunk_z);
 
                     match self.get_chunk(chunk_pos) {
                         Some(chunk) => {

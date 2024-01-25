@@ -114,7 +114,7 @@ impl Keys {
 }
 
 pub struct Sub {
-	pos: cgmath::Point3<f32>,
+	pos: cgmath::Vector3<f32>,
 
     up: cgmath::Vector3<f32>,
     forward: cgmath::Vector3<f32>,
@@ -281,7 +281,7 @@ impl Sub {
         //--------------------------------------------------------------------//
 
 		Self {
-			pos: cgmath::Point3::new(0.0, 0.0, START_Z_OFFSET),
+			pos: cgmath::Vector3::new(0.0, 0.0, START_Z_OFFSET),
 
             up: cgmath::Vector3::unit_z(),
             forward: cgmath::Vector3::unit_x(),
@@ -403,7 +403,7 @@ impl Sub {
             self.pos.z = self.pos.z.clamp(MIN_Z, MAX_Z);
         }
 
-		let inst_mat = cgmath::Matrix4::from_translation(self.pos.to_vec()) * cgmath::Matrix4::from(self.overall_rotation);
+		let inst_mat = cgmath::Matrix4::from_translation(self.pos) * cgmath::Matrix4::from(self.overall_rotation);
 		let inst = draw::Instance::new(inst_mat);
 		queue.write_buffer(&self.inst_buffer, 0, bytemuck::cast_slice(&[inst]));
 
@@ -414,13 +414,13 @@ impl Sub {
 
 	pub fn update_camera(&self, camera: &mut camera::Camera, delta: f32) {
 		let eye_goal = self.pos - self.forward * HORIZONTAL_OFFSET + self.up * VERTICAL_OFFSET;
-		let eye_diff = eye_goal - camera.eye;
+		let eye_diff = eye_goal - camera.eye.to_vec();
 		let eye_move = eye_diff * delta * CAMERA_FOLLOW_SPEED;
 		camera.eye += eye_move;
         // camera.eye = eye_goal;
 
         let target_goal = eye_goal + self.forward - self.up * TARGET_DOWN;
-        let target_diff = target_goal - camera.target;
+        let target_diff = target_goal - camera.target.to_vec();
         let target_move = target_diff * delta * CAMERA_FOLLOW_SPEED;
         camera.target += target_move;
         // camera.target = target_goal;
@@ -445,7 +445,7 @@ impl Sub {
         )
     }
 
-    pub fn pos(&self) -> cgmath::Point3<f32> { self.pos }
+    pub fn pos(&self) -> cgmath::Vector3<f32> { self.pos }
     pub fn bearing(&self) -> cgmath::Vector3<f32> { self.forward }
 
     pub fn verts_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }

@@ -423,7 +423,7 @@ impl<'a> State<'a> {
         let sub = sub::Sub::new(&device, &perlin);
         
         let mut world = world::World::new();
-        world.update_nearby(sub.chunk());
+        world.update_nearby(&sub);
 
         let boid_manager = boid::BoidManager::new(&sub, &perlin, &device, &queue, &texture_bind_group_layout);
         //--------------------------------------------------------------------//
