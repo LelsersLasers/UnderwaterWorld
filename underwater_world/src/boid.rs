@@ -31,6 +31,8 @@ const ISO_PADDING: f32 = 0.1;
 const POS_RANGE: f32 = chunk::CHUNK_SIZE as f32 * world::VIEW_DIST as f32 * 0.8;
 const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
 
+const NEW_Z_STEP: f32 = 2.0;
+
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Species {
@@ -109,7 +111,7 @@ impl Boid {
                 if iso > chunk::ISO_LEVEL + ISO_PADDING {
                     new_z_in_wall = false;
                 } else {
-                    new_z += 1.0;
+                    new_z += NEW_Z_STEP;
                 }
             }
 
