@@ -2,6 +2,8 @@ use crate::{chunk, sub};
 use std::collections::HashMap;
 
 pub const VIEW_DIST: i32 = 4;
+pub const MAX_Z: i32 = 2;
+pub const MIN_Z: i32 = -2;
 
 
 pub struct World {
@@ -53,13 +55,16 @@ impl World {
         for x in -VIEW_DIST..VIEW_DIST {
             for y in -VIEW_DIST..VIEW_DIST {
                 for z in -VIEW_DIST..VIEW_DIST {
+                    let chunk_z = sub_chunk.2 + z;
+                    if !(MIN_Z..=MAX_Z).contains(&chunk_z) { continue; }
+
                     let dist = ((x.pow(2) + y.pow(2) + z.pow(2)) as f32).sqrt();
                     if dist > VIEW_DIST as f32 { continue; }
 
                     let chunk_pos = (
                         sub_chunk.0 + x,
                         sub_chunk.1 + y,
-                        sub_chunk.2 + z,
+                        chunk_z,
                     );
 
                     match self.get_chunk(chunk_pos) {
