@@ -5,8 +5,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - 3d fish/boids
-    - When out of range b/c of z: game currently freezes
-        - Both too high and too low
     - Performance
         - 3d space partitioning
             - Is this actually helpful??

@@ -27,6 +27,9 @@ const PERLIN_FACTOR: f32 = 2.0;
 const CAMERA_FOLLOW_SPEED: f32 = 10.0;
 const START_Z_OFFSET: f32 = 1.0 * chunk::CHUNK_SIZE as f32;
 
+const MAX_Z: f32 = chunk::CHUNK_SIZE as f32 * 2.0;
+const MIN_Z: f32 = chunk::CHUNK_SIZE as f32 * -1.5;
+
 struct Keys {
 	w_down: bool,
 	s_down: bool,
@@ -397,6 +400,7 @@ impl Sub {
             self.right = overall_change_quat.rotate_vector(self.right);
             
             self.pos += self.forward * self.speed * delta;
+            self.pos.z = self.pos.z.clamp(MIN_Z, MAX_Z);
         }
 
 		let inst_mat = cgmath::Matrix4::from_translation(self.pos.to_vec()) * cgmath::Matrix4::from(self.overall_rotation);
