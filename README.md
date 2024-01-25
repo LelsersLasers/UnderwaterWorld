@@ -4,12 +4,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
-- Text
-    - FPS
-    - 99% fps
-        - Lowest fps over last 5 sec
-    - Posistion
-    - Bearing
 - 3d fish/boids
     - When out of range b/c of z: game currently freezes
         - Both too high and too low
@@ -24,6 +18,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
 - Resizing
+- Preformance
+    - What is making it slow on the web??
 - Better terrain generation
     - Coloring terrain
     - More phsyically plausible
