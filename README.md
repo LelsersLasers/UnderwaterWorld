@@ -9,7 +9,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - 3d space partitioning
             - Is this actually helpful??
         - The slowest part is actually the raycasting/wall collision checks
-            - It runs great otherwise
         - Is it fine actually?
     - Don't reset acceration between frames?
     - Specicies
@@ -18,10 +17,15 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Resizing
 - Preformance
     - What is making it slow on the web??
+    - Think it is the chunk generation
+        - Better throttling system?
+            - Right now it adds a bunch of chunks to generate at once instead of slowly adding them?
+    - Clamp chunk generation + render tries on Z axis
+        - Similar to the sub Z axis clamping, but shouldn't be the same
 - Better terrain generation
-    - Coloring terrain
-    - More phsyically plausible
-- Propeller bubbles
+    - And coloring terrain
+    - And more phsyically plausible
+- Propeller bubbles?
 - Shader/lighting effects
     - Fog
     - Lighting
@@ -29,18 +33,15 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - Scale clear color/fog color with sub depth
         - Make sure the html background also updates
     - If no wall collisions then void plane to make it obvious you are below
-- Collisions with walls?
-    - Sub is hard to control + might be frustrating to get stuck in dead end caves
-    - But the upside is you just go through walls
 - Web build
 
 ## Controls
 
-- W | up / S | down = pitch up / down
-- A | left / D | right = pitch left / right
-- Q | pgUp / E | pgDown = roll left / right
-- Space / control = speed up / down
-- R | Enter = reset submarine
+- Change pitch: WASD or arrow keys
+- Roll: Q/E or pgUp/pgDown
+- Speed up: space
+- Slow down: control
+- Reset submarine: R or enter
 
 ## Assets
 
