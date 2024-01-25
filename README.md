@@ -6,21 +6,20 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 - 3d fish/boids
     - When out of range b/c of z: game currently freezes
+        - Both too high and too low
     - Performance
         - 3d space partitioning
             - Is this actually helpful??
         - The slowest part is actually the raycasting/wall collision checks
             - It runs great otherwise
         - Is it fine actually?
+    - Don't reset acceration between frames?
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
-- Text
-    - FPS
-    - 99% fps
-    - Posistion
-    - Bearing
 - Resizing
+- Preformance
+    - What is making it slow on the web??
 - Better terrain generation
     - Coloring terrain
     - More phsyically plausible

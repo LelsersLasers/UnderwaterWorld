@@ -442,6 +442,7 @@ impl Sub {
     }
 
     pub fn pos(&self) -> cgmath::Point3<f32> { self.pos }
+    pub fn bearing(&self) -> cgmath::Vector3<f32> { self.forward }
 
     pub fn verts_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
     pub fn prop_verts_buffer_slice(&self) -> wgpu::BufferSlice { self.prop_verts_buffer.slice(..) }
