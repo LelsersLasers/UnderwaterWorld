@@ -6,7 +6,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 - Text
     - FPS
-        - Only change the outputed fps value display every ~0.2 sec or something
     - 99% fps
         - Lowest fps over last 5 sec
     - Posistion

@@ -1,6 +1,10 @@
 use crate::{boid, camera, consts, draw, texture, timer, sub, world};
 use wgpu::util::DeviceExt;
 
+const TEXT_SIZE: f32 = 20.0 / 600.0;
+const TEXT_SPACING: f32 = 10.0 / 600.0;
+const FPSES_TO_KEEP: f32 = 2.0; // seconds
+
 pub struct State<'a> {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -27,6 +31,7 @@ pub struct State<'a> {
     camera_bind_group: wgpu::BindGroup,
 
     fps_counter: timer::FpsCounter,
+    fpses: Vec<f32>,
 
     perlin: noise::Perlin,
 
@@ -407,6 +412,7 @@ impl<'a> State<'a> {
 
         //--------------------------------------------------------------------//
         let fps_counter = timer::FpsCounter::new();
+        let fpses = Vec::new();
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
@@ -442,6 +448,7 @@ impl<'a> State<'a> {
             camera_buffer,
             camera_bind_group,
             fps_counter,
+            fpses,
             perlin,
             sub,
             world,
@@ -468,7 +475,18 @@ impl<'a> State<'a> {
 
     pub fn update(&mut self) {
         let delta = self.fps_counter.update();
-        println!("FPS: {:5.0}", self.fps_counter.fps());
+        self.fpses.push(self.fps_counter.fps() as f32);
+
+        let old_len = self.fpses.len();
+        let average_fps: f32 = self.fpses.iter().sum::<f32>() / old_len as f32;
+        let length = (FPSES_TO_KEEP * average_fps).round() as usize;
+
+        let mut new_fpses = Vec::with_capacity(length);
+        let start = (old_len as i32 - length as i32).max(0) as usize;
+        for i in start..old_len {
+            new_fpses.push(self.fpses[i]);
+        }
+        self.fpses = new_fpses;
 
         self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);
@@ -572,16 +590,22 @@ impl<'a> State<'a> {
                     occlusion_query_set: None,
                 });
 
+            let scale = self.size.width.min(self.size.height) as f32;
+            let font_size = scale * TEXT_SIZE;
+            let text_spacing = scale * TEXT_SPACING;
+
             let fps_text = format!("FPS: {:3.0}", self.fps_counter.fps());
+            let min_fps = self.fpses.clone().into_iter().reduce(f32::min).unwrap();
+            let min_text = format!("99% FPS: {:3.0}", min_fps);
             let pos = self.sub.pos();
             let pos_text = format!("POS: {:.0} {:.0} {:.0}", pos.x, pos.y, pos.z);
             let bearing = self.sub.bearing();
             let bearing_text = format!("BEARING: {:.3} {:.3} {:.3}", bearing.x, bearing.y, bearing.z);
-            let overall_text = format!("{}\n{}\n{}", fps_text, pos_text, bearing_text);
+            let overall_text = format!("{}\n{}\n{}\n{}", fps_text, min_text, pos_text, bearing_text);
 
             let selection = wgpu_text::glyph_brush::Section::default()
                 .add_text(wgpu_text::glyph_brush::Text::new(&overall_text)
-                    .with_scale(20.0)
+                    .with_scale(font_size)
                     .with_color([236.0 / 255.0, 239.0 / 255.0, 244.0 / 255.0, 1.0])
                 )
                 .with_layout(
@@ -589,7 +613,7 @@ impl<'a> State<'a> {
                         .v_align(wgpu_text::glyph_brush::VerticalAlign::Top)
                         .line_breaker(wgpu_text::glyph_brush::BuiltInLineBreaker::AnyCharLineBreaker),
                 )
-                .with_screen_position((50.0, 50.0))
+                .with_screen_position((text_spacing, text_spacing))
                 .to_owned();
 
 
