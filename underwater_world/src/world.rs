@@ -49,7 +49,7 @@ impl World {
         println!("chunks_to_generate: {}", self.chunks_to_generate.len());
 
         if let Some(generating_chunk) = &mut self.generating_chunk {
-            let finished = generating_chunk.chunk.build(device);
+            let finished = generating_chunk.chunk.build_partial(perlin, device);
             if finished {
                 let pos = generating_chunk.chunk_pos;
                 if generating_chunk.chunk.not_blank() {
@@ -59,7 +59,7 @@ impl World {
                 self.generating_chunk = None;
             }
         } else if let Some(pos) = self.chunks_to_generate.pop() {
-            let chunk = chunk::Chunk::new(pos, perlin);
+            let chunk = chunk::Chunk::new(pos);
             self.generating_chunk = Some(GeneratingChunk { chunk_pos: pos, chunk });
         }
     }
