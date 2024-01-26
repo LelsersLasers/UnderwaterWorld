@@ -51,6 +51,14 @@ impl World {
         self.chunks.get(&pos)
     }
 
+    pub fn build_full(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
+        for pos in self.chunks_to_generate.drain(..) {
+            let mut chunk = chunk::Chunk::new(pos);
+            chunk.build_full(perlin, device);
+            self.chunks.insert(pos, chunk);
+        }
+    }
+
     pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
         let dist = (sub.pos() - self.last_sub_pos).magnitude();
         if dist > RECHECK_NEARBY_DIST {
@@ -59,9 +67,12 @@ impl World {
         }
 
         self.remove_far_way(sub);
+        self.build_step(perlin, device);
 
         // println!("chunks_to_generate: {}", self.chunks_to_generate.len());
+    }
 
+    fn build_step(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
         if let Some(generating_chunk) = &mut self.generating_chunk {
             let finished = generating_chunk.chunk.build_partial(perlin, device);
             if finished {
@@ -76,6 +87,8 @@ impl World {
             let chunk = chunk::Chunk::new(pos);
             self.generating_chunk = Some(GeneratingChunk { chunk_pos: pos, chunk });
         }
+
+        // self.generating_chunk.is_none() && self.chunks_to_generate.is_empty()
     }
 
 
@@ -143,7 +156,6 @@ impl World {
             }
         } else {
             self.remove_state.keys_left = self.chunks.keys().cloned().collect();
-            println!("Reset: {:?}", self.remove_state.keys_left.len());
         }
     }
 

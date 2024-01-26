@@ -203,6 +203,10 @@ impl Chunk {
         self.build.x == CHUNK_SIZE as i32
     }
 
+    pub fn build_full(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
+        while !self.build_partial(perlin, device) {}
+    }
+
     pub fn build_partial(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) -> bool {
         match self.build_state {
             BuildState::Done => true,
