@@ -6,6 +6,7 @@ use std::collections::HashMap;
 pub const RECHECK_DIST: f32 = 4.0;
 
 pub const VIEW_DIST: i32 = 4;
+const GENERATION_DIST: i32 = 5;
 pub const MAX_Z: i32 = 2;
 pub const MIN_Z: i32 = -2;
 
@@ -72,15 +73,20 @@ impl World {
         let sub_pos = sub.pos();
         let sub_chunk = sub.chunk();
 
-        let max_dist = VIEW_DIST as f32 * chunk::CHUNK_SIZE as f32;
+        let max_view_dist = VIEW_DIST as f32 * chunk::CHUNK_SIZE as f32;
+        let max_generation_dist = GENERATION_DIST as f32 * chunk::CHUNK_SIZE as f32;
 
-        for x in -VIEW_DIST..VIEW_DIST {
+        // TODO: use MIN_Z and MAX_Z to just limit the number of times the loop runs
+        // instead of continuing early
+        // let start_z = 
+
+        for x in -GENERATION_DIST..GENERATION_DIST {
             let chunk_x = sub_chunk.0 + x;
 
-            for y in -VIEW_DIST..VIEW_DIST {
+            for y in -GENERATION_DIST..GENERATION_DIST {
                 let chunk_y = sub_chunk.1 + y;
 
-                for z in -VIEW_DIST..VIEW_DIST {
+                for z in -GENERATION_DIST..GENERATION_DIST {
                     let chunk_z = sub_chunk.2 + z;
                     if !(MIN_Z..=MAX_Z).contains(&chunk_z) { continue; }
 
@@ -90,13 +96,13 @@ impl World {
                         (chunk_z as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
                     );
                     let dist = (sub_pos - chunk_center).magnitude();
-                    if dist > max_dist { continue; }
+                    if dist > max_generation_dist { continue; }
 
                     let chunk_pos = (chunk_x, chunk_y, chunk_z);
 
                     match self.get_chunk(chunk_pos) {
                         Some(chunk) => {
-                            if chunk.not_blank() {
+                            if dist < max_view_dist && chunk.not_blank() {
                                 self.chunks_to_render.push(chunk_pos);
                             }
                         }
