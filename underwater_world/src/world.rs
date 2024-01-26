@@ -4,7 +4,6 @@ use crate::{chunk, sub};
 use std::collections::HashMap;
 
 const RECHECK_NEARBY_DIST: f32 = 4.0;
-const RECHECK_REMOVE_DIST: i32 = 8; // chunks
 
 pub const VIEW_DIST: i32 = 4;
 const GENERATION_DIST: i32 = 5;
@@ -17,14 +16,23 @@ struct GeneratingChunk {
     chunk: chunk::Chunk,
 }
 
+struct RemoveState {
+    keys_left: Vec<(i32, i32, i32)>
+}
+impl RemoveState {
+    fn new() -> Self {
+        Self { keys_left: Vec::new() }
+    }
+}
+
 
 pub struct World {
     chunks: HashMap<(i32, i32, i32), chunk::Chunk>,
     chunks_to_render: Vec<(i32, i32, i32)>,
     chunks_to_generate: Vec<(i32, i32, i32)>,
     generating_chunk: Option<GeneratingChunk>,
-    last_sub_nearby_pos: cgmath::Vector3<f32>,
-    last_sub_remove_pos: cgmath::Vector3<f32>,
+    last_sub_pos: cgmath::Vector3<f32>,
+    remove_state: RemoveState,
 }
 
 impl World {
@@ -34,8 +42,8 @@ impl World {
             chunks_to_render: Vec::new(),
             chunks_to_generate: Vec::new(),
             generating_chunk: None,
-            last_sub_nearby_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
-            last_sub_remove_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
+            last_sub_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
+            remove_state: RemoveState::new(),
         }
     }
 
@@ -44,20 +52,13 @@ impl World {
     }
 
     pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
-        let nearby_dist = (sub.pos() - self.last_sub_nearby_pos).magnitude();
-        if nearby_dist > RECHECK_NEARBY_DIST {
+        let dist = (sub.pos() - self.last_sub_pos).magnitude();
+        if dist > RECHECK_NEARBY_DIST {
             self.update_nearby(sub);
-            self.last_sub_nearby_pos = sub.pos();
-            println!("update_nearby");
+            self.last_sub_pos = sub.pos();
         }
 
-        let remove_dist = (sub.pos() - self.last_sub_remove_pos).magnitude();
-        if remove_dist > RECHECK_REMOVE_DIST as f32 * chunk::CHUNK_SIZE as f32 {
-            println!("Intial {}", self.chunks.len());
-            self.remove_far_way(sub);
-            self.last_sub_remove_pos = sub.pos();
-            println!("After {}", self.chunks.len());
-        }
+        self.remove_far_way(sub);
 
         // println!("chunks_to_generate: {}", self.chunks_to_generate.len());
 
@@ -131,13 +132,19 @@ impl World {
     }
 
     fn remove_far_way(&mut self, sub: &sub::Sub) {
-        let sub_chunk = sub.chunk();
-        self.chunks.retain(|pos, _| {
+        if let Some(pos) = self.remove_state.keys_left.pop() {
+            let sub_chunk = sub.chunk();
             let dx = pos.0 - sub_chunk.0;
             let dy = pos.1 - sub_chunk.1;
             let dz = pos.2 - sub_chunk.2;
-            dx * dx + dy * dy + dz * dz <= KEEP_DIST * KEEP_DIST
-        });
+
+            if dx * dx + dy * dy + dz * dz >= KEEP_DIST * KEEP_DIST {
+                self.chunks.remove(&pos);
+            }
+        } else {
+            self.remove_state.keys_left = self.chunks.keys().cloned().collect();
+            println!("Reset: {:?}", self.remove_state.keys_left.len());
+        }
     }
 
     pub fn chunks_to_render(&self) -> &[(i32, i32, i32)] {
