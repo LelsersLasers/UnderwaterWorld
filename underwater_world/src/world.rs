@@ -9,11 +9,17 @@ pub const VIEW_DIST: i32 = 4;
 pub const MAX_Z: i32 = 2;
 pub const MIN_Z: i32 = -2;
 
+struct GeneratingChunk {
+    chunk_pos: (i32, i32, i32),
+    chunk: chunk::Chunk,
+}
+
 
 pub struct World {
     chunks: HashMap<(i32, i32, i32), chunk::Chunk>,
     chunks_to_render: Vec<(i32, i32, i32)>,
     chunks_to_generate: Vec<(i32, i32, i32)>,
+    generating_chunk: Option<GeneratingChunk>,
     last_sub_pos: cgmath::Vector3<f32>,
 }
 
@@ -23,6 +29,7 @@ impl World {
             chunks: HashMap::new(),
             chunks_to_render: Vec::new(),
             chunks_to_generate: Vec::new(),
+            generating_chunk: None,
             last_sub_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
         }
     }
@@ -32,12 +39,6 @@ impl World {
     }
 
     pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
-        // let sub_chunk = sub.chunk();
-        // if sub_chunk != self.last_sub_chunk {
-        //     self.update_nearby(sub);
-        //     self.last_sub_chunk = sub_chunk;
-        // }
-        // self.update_nearby(sub_chunk);
         let dist = (sub.pos() - self.last_sub_pos).magnitude();
         if dist > RECHECK_DIST {
             self.update_nearby(sub);
@@ -45,16 +46,21 @@ impl World {
             println!("update_nearby");
         }
 
-        // self.update_nearby(sub);
-
         println!("chunks_to_generate: {}", self.chunks_to_generate.len());
 
-        if let Some(pos) = self.chunks_to_generate.pop() {
-            let chunk = chunk::Chunk::new(pos, perlin, device);
-            if chunk.not_blank() {
-                self.chunks_to_render.push(pos);
+        if let Some(generating_chunk) = &mut self.generating_chunk {
+            let finished = generating_chunk.chunk.build(device);
+            if finished {
+                let pos = generating_chunk.chunk_pos;
+                if generating_chunk.chunk.not_blank() {
+                    self.chunks_to_render.push(pos);
+                }
+                self.chunks.insert(pos, self.generating_chunk.take().unwrap().chunk);
+                self.generating_chunk = None;
             }
-            self.chunks.insert(pos, chunk);
+        } else if let Some(pos) = self.chunks_to_generate.pop() {
+            let chunk = chunk::Chunk::new(pos, perlin);
+            self.generating_chunk = Some(GeneratingChunk { chunk_pos: pos, chunk });
         }
     }
 

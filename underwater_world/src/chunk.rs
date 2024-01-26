@@ -7,19 +7,26 @@ pub const PERLIN_OCTAVES: u32 = 3;
 pub const ISO_LEVEL: f32 = -0.1;
 pub const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
 
+enum BuildState {
+    Done,
+    Isos {
+        chunk_offset: [i32; 3],
+        isos: Vec<f32>,
+    },
+}
 
 // space of 16x16x16
 pub struct Chunk {
 	num_verts: usize,
     tris: HashMap<(usize, usize, usize), Vec<util::Tri>>,
 	verts_buffer: Option<wgpu::Buffer>,
+    build_state: BuildState,
 }
 
 impl Chunk {
 	pub fn new(
         pos: (i32, i32, i32),
         perlin: &noise::Perlin,
-		device: &wgpu::Device,
     ) -> Self {
         let chunk_offset = [
 			pos.0 * CHUNK_SIZE as i32,
@@ -40,13 +47,26 @@ impl Chunk {
 				})
 			})
 		}).collect::<Vec<f32>>();
-		let corner_to_iso_idx = |corner: [usize; 3]| {
-			corner[0] * (CHUNK_SIZE + 1) * (CHUNK_SIZE + 1) + corner[1] * (CHUNK_SIZE + 1) + corner[2]
-		};
+
+        Self {
+            num_verts: 0,
+            tris: HashMap::new(),
+            verts_buffer: None,
+            build_state: BuildState::Isos {
+                chunk_offset,
+                isos,
+            },
+        }
+    }
+
+    pub fn build(&mut self, device: &wgpu::Device,) -> bool {
+        let (chunk_offset, isos) = match &self.build_state {
+            BuildState::Done => return true,
+            BuildState::Isos { chunk_offset, isos } => (chunk_offset, isos),
+        };
 
         let mut verts = Vec::new();
         let mut tris = HashMap::new();
-
 
 		for x in 0..CHUNK_SIZE {
 			for y in 0..CHUNK_SIZE {
@@ -140,23 +160,19 @@ impl Chunk {
 
         if num_verts > 0 {
             let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("{:?} Chunk Vertex Buffer", pos)),
+                label: Some(&format!("{:?} Chunk Vertex Buffer", chunk_offset)),
                 contents: bytemuck::cast_slice(&verts),
                 usage: wgpu::BufferUsages::VERTEX,
             });
-            Self {
-                num_verts,
-                verts_buffer: Some(verts_buffer),
-                tris,
-            }
-        } else {
-            Self {
-                num_verts,
-                verts_buffer: None,
-                tris,
-            }
+
+            self.verts_buffer = Some(verts_buffer);
         }
-	}
+        self.num_verts = num_verts;
+        self.tris = tris;
+        self.build_state = BuildState::Done;
+
+        true
+    }
 
     pub fn tris_at(&self, pos: (usize, usize, usize)) -> &[util::Tri] {
         match self.tris.get(&pos) {
@@ -171,7 +187,6 @@ impl Chunk {
 	pub fn num_verts(&self) -> usize { self.num_verts }
 }
 
-// fn smoothstep(x: f32, edge0: f32, edge1: f32) -> f32 {
-//     let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
-//     t * t * (3.0 - 2.0 * t)
-// }
+fn corner_to_iso_idx(corner: [usize; 3]) -> usize {
+    corner[0] * (CHUNK_SIZE + 1) * (CHUNK_SIZE + 1) + corner[1] * (CHUNK_SIZE + 1) + corner[2]
+}
