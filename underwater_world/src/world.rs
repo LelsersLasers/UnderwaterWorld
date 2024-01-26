@@ -76,9 +76,8 @@ impl World {
         let max_view_dist = VIEW_DIST as f32 * chunk::CHUNK_SIZE as f32;
         let max_generation_dist = GENERATION_DIST as f32 * chunk::CHUNK_SIZE as f32;
 
-        // TODO: use MIN_Z and MAX_Z to just limit the number of times the loop runs
-        // instead of continuing early
-        // let start_z = 
+        let start_z = (sub_chunk.2 - GENERATION_DIST).max(MIN_Z);
+        let end_z =   (sub_chunk.2 + GENERATION_DIST).min(MAX_Z);
 
         for x in -GENERATION_DIST..GENERATION_DIST {
             let chunk_x = sub_chunk.0 + x;
@@ -86,10 +85,7 @@ impl World {
             for y in -GENERATION_DIST..GENERATION_DIST {
                 let chunk_y = sub_chunk.1 + y;
 
-                for z in -GENERATION_DIST..GENERATION_DIST {
-                    let chunk_z = sub_chunk.2 + z;
-                    if !(MIN_Z..=MAX_Z).contains(&chunk_z) { continue; }
-
+                for chunk_z in start_z..=end_z {
                     let chunk_center = cgmath::Vector3::new(
                         (chunk_x as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
                         (chunk_y as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
