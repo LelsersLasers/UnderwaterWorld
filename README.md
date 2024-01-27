@@ -5,7 +5,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 ## TODO
 
 - Bugs
-    - Frozen on sub pos clamp??
+    - Frozen on sub pos clamp
+        - Caused by boid wrapping z issues I think
 - Preformance
     - What are actually the slow parts?
     - Chunk generation
@@ -21,7 +22,10 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - Is this actually helpful??
         - The slowest part is actually the raycasting/wall collision checks
         - Is it fine actually?
-    - Don't reset acceration between frames?
+    - Smoother wall avoidence
+        - Don't reset acceration between frames?
+            - Or don't reset `wall_avoidence_acceleration` each frame?
+            - And have it decay to 0 over ~1 second?
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
