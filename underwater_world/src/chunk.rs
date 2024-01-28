@@ -47,10 +47,10 @@ impl Build {
 
     fn finish(&mut self) {
         self.isos.clear();
-        self.isos.shrink_to_fit();
+        self.isos.shrink_to(0);
 
         self.verts.clear();
-        self.verts.shrink_to_fit();
+        self.verts.shrink_to(0);
 
         self.x = -1;
     }
