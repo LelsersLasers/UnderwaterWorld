@@ -4,22 +4,30 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
+- Preformance
+    - What are actually the slow parts?
+    - Chunk generation
+        - Split across frames
+        - After isos are built, do a quick full blank check
+        - Issue: chunks are not created fast enough, can see them "pop" in
+        - Attempted solution: start generating them before they are in the view dist?
+            - Still not fast enough by a little bit + slow on startup
+            - Sort of works when `GENERATION_DIST - VIEW_DIST == 2`
+                - But then, constantly generating chunks + many never get used
 - 3d fish/boids
     - Performance
         - 3d space partitioning
             - Is this actually helpful??
         - The slowest part is actually the raycasting/wall collision checks
         - Is it fine actually?
-    - Don't reset acceration between frames?
+    - Smoother wall avoidence
+        - Don't reset acceration between frames?
+            - Or don't reset `wall_avoidence_acceleration` each frame?
+            - And have it decay to 0 over ~1 second?
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
 - Resizing
-- Preformance
-    - What is making it slow on the web??
-    - Better throttle for chunk creation?
-        - Maybe generate a chunk a little bit at a time?
-        - What is the slow part of it?
 - Better terrain generation
     - And coloring terrain
     - And more phsyically plausible

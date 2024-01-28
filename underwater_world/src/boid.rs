@@ -22,14 +22,14 @@ const DOWN_STEER_MULT: f32 = -0.1;
 const NUM_BOIDS: usize = 100;
 // Note: this is the number of boids per species
 
-const WRAP_STRENGTH: f32 = 1.95;
+const WRAP_STRENGTH: f32 = 1.975;
 
 const FISH_SCALE: f32 = 0.75;
 
-const ISO_PADDING: f32 = 0.1;
+const ISO_PADDING: f32 = 0.075;
 
-const POS_RANGE: f32 = 46.0;
-const POS_RANGE_Z: f32 = chunk::CHUNK_SIZE as f32;
+const POS_RANGE_XY: f32 = 46.0;
+const POS_RANGE_Z: f32 = 16.0;
 
 const NEW_Z_STEP: f32 = 2.0;
 
@@ -83,21 +83,22 @@ impl Boid {
         }
     }
 
-    fn wrap(&mut self, sub: &sub::Sub, perlin: &noise::Perlin) -> (cgmath::Vector3<f32>, bool) {
+    fn wrap(&mut self, sub: &sub::Sub, perlin: &noise::Perlin) -> cgmath::Vector3<f32> {
         let mut acceleration = cgmath::Vector3::zero();
-        let mut wrapped = false;
 
-        let sub_offset = sub.pos() - self.position;
-        let sub_distance = sub_offset.magnitude();
-        if sub_offset.z < -POS_RANGE_Z {
-            let sub_force = self.steer_towards(sub_offset);
+        let sub_pos = sub.pos();
+
+        let sub_offset_z = self.position.z - sub_pos.z;
+        if sub_offset_z < -POS_RANGE_Z {
+            let sub_force = self.steer_towards(-cgmath::Vector3::unit_z());
             acceleration += sub_force;
         }
-        if sub_distance > POS_RANGE {
-            wrapped = true;
 
-            let new_x = sub_offset.x * WRAP_STRENGTH + self.position.x;
-            let new_y = sub_offset.y * WRAP_STRENGTH + self.position.y;
+        let sub_offset_xy = cgmath::Vector2::new(sub_pos.x - self.position.x, sub_pos.y - self.position.y);
+        let sub_distance_xy = sub_offset_xy.magnitude();
+        if sub_distance_xy > POS_RANGE_XY {
+            let new_x = sub_offset_xy.x * WRAP_STRENGTH + self.position.x;
+            let new_y = sub_offset_xy.y * WRAP_STRENGTH + self.position.y;
 
             let mut new_z = self.position.z;
             let mut new_z_in_wall = true;
@@ -119,7 +120,7 @@ impl Boid {
             self.position = new_pos;
         }
 
-        (acceleration, wrapped)
+        acceleration
     }
 
     fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
@@ -137,12 +138,8 @@ impl Boid {
             acceleration += cohesion_force;
         }
 
-        let mut should_try_wrap = true;
-        while should_try_wrap {
-            let (wrap_force, wrapped) = self.wrap(sub, perlin);
-            should_try_wrap = wrapped;
-            acceleration += wrap_force;
-        }
+        let wrap_force = self.wrap(sub, perlin);
+        acceleration += wrap_force;
 
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
         acceleration += down_force;
@@ -246,9 +243,9 @@ fn random_pos(rng: &mut ThreadRng, perlin: &noise::Perlin, sub: &sub::Sub) -> cg
     let sub_pos = sub.pos();
 
     loop {
-        let x_range = (sub_pos.x - POS_RANGE)..(sub_pos.x + POS_RANGE);
-        let y_range = (sub_pos.y - POS_RANGE)..(sub_pos.y + POS_RANGE);
-        let z_range = (sub_pos.z - POS_RANGE)..(sub_pos.z + POS_RANGE_Z);
+        let x_range = (sub_pos.x - POS_RANGE_XY)..(sub_pos.x + POS_RANGE_XY);
+        let y_range = (sub_pos.y - POS_RANGE_XY)..(sub_pos.y + POS_RANGE_XY);
+        let z_range = (sub_pos.z - POS_RANGE_XY)..(sub_pos.z + POS_RANGE_Z);
         let pos = cgmath::Vector3::new(
             rng.gen_range(x_range),
             rng.gen_range(y_range),
