@@ -56,13 +56,13 @@ impl World {
     }
 
     pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
+        self.remove_far_way(sub);
+
         let dist = (sub.pos() - self.last_sub_pos).magnitude();
         if dist > RECHECK_NEARBY_DIST {
             self.update_nearby(sub);
             self.last_sub_pos = sub.pos();
         }
-
-        self.remove_far_way(sub);
 
         if self.should_full_build {
             self.build_full_step(perlin, device);

@@ -478,7 +478,10 @@ impl<'a> State<'a> {
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
 
             for pos in self.world.chunks_to_render() {
-                let chunk = self.world.get_chunk(*pos).unwrap();
+                let chunk = match self.world.get_chunk(*pos) {
+                    Some(chunk) => chunk,
+                    None => continue,
+                };
                 render_pass.set_vertex_buffer(0, chunk.verts_buffer_slice());
                 render_pass.draw(0..chunk.num_verts() as u32, 0..1);
             }

@@ -221,6 +221,7 @@ impl Chunk {
                     if blank_check {
                         self.build_state = BuildState::Done;
                         self.build.finish();
+                        return true;
                     } else {
                         self.build_state = BuildState::Mesh;
                         self.build.start_mesh();
