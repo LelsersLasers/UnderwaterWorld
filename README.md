@@ -11,11 +11,15 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - Attempted solution: start generating them before they are in the view dist?
             - Still not fast enough at 60 FPS
             - Sort of works when `GENERATION_DIST - VIEW_DIST >= 2`
+    - "Downscale" chunks
+        - They are 16x16x16 in world space but only 12x12x12 in local space
+        - Shouldn't actually effect too much except for the boid wall avoidance
 - 3d fish/boids
     - Performance
         - 3d space partitioning
             - Is this actually helpful??
         - The slowest part is actually the raycasting/wall collision checks
+            - Might be a faster way to early exit
         - Is it fine actually?
     - Smoother wall avoidence
         - Don't reset acceration between frames?

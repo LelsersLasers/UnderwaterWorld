@@ -161,8 +161,8 @@ impl Boid {
         for x in (x_i32 - WALL_RANGE)..(x_i32 + WALL_RANGE) {
             for y in (y_i32 - WALL_RANGE)..(y_i32 + WALL_RANGE) {
                 for z in (z_i32 - WALL_RANGE)..(z_i32 + WALL_RANGE) {
-                    let dist_sq = (x - x_i32).pow(2) + (y - y_i32).pow(2) + (z - z_i32).pow(2);
-                    if dist_sq > WALL_RANGE.pow(2) {
+                    let dist_sq = util::dist_sq((x, y, z), (x_i32, y_i32, z_i32));
+                    if dist_sq > WALL_RANGE * WALL_RANGE {
                         continue;
                     }
 
@@ -179,7 +179,7 @@ impl Boid {
                     let chunk_x = x - world_x * chunk::CHUNK_SIZE as i32;
                     let chunk_y = y - world_y * chunk::CHUNK_SIZE as i32;
                     let chunk_z = z - world_z * chunk::CHUNK_SIZE as i32;
-                    let local_pos = (chunk_x as usize, chunk_y as usize, chunk_z as usize);
+                    let local_pos = (chunk_x, chunk_y, chunk_z);
 
                     let tris = chunk.tris_at(local_pos);
 
@@ -267,13 +267,10 @@ fn random_pos(rng: &mut ThreadRng, perlin: &noise::Perlin, sub: &sub::Sub) -> cg
 
 struct PerSpecies {
     diffuse_bind_group: wgpu::BindGroup,
-    // diffuse_texture: texture::Texture,
 
     verts_buffer: wgpu::Buffer,
-    // ind_buffer: wgpu::Buffer,
     inst_buffer: wgpu::Buffer,
 
-    // num_inds: u32,
     num_verts: usize,
 }
 
@@ -340,7 +337,6 @@ impl BoidManager {
             let mut vert_poses = Vec::new();
             let mut vert_txs = Vec::new();
             let mut verts = Vec::new();
-            // let mut inds = Vec::new();
 
             let mut highest_v: f32 = 0.0;
 
@@ -421,7 +417,6 @@ impl BoidManager {
 
             per_species.push(PerSpecies {
                 diffuse_bind_group,
-                // diffuse_texture,
 
                 verts_buffer,
                 inst_buffer,

@@ -1,6 +1,5 @@
+use crate::{chunk, sub, util};
 use cgmath::InnerSpace;
-
-use crate::{chunk, sub};
 use std::collections::HashMap;
 
 const RECHECK_NEARBY_DIST: f32 = 4.0;
@@ -90,7 +89,7 @@ impl World {
             if finished {
                 let pos = generating_chunk.chunk_pos;
                 let sub_chunk = sub.chunk();
-                let dist_sq = dist_sq(pos, sub_chunk);
+                let dist_sq = util::dist_sq(pos, sub_chunk);
                 if generating_chunk.chunk.not_blank() && dist_sq <= (VIEW_DIST + 1) * (VIEW_DIST + 1) {
                     self.chunks_to_render.push(pos);
                 }
@@ -157,7 +156,7 @@ impl World {
     fn remove_far_way(&mut self, sub: &sub::Sub) {
         if let Some(pos) = self.remove_state.keys_left.pop() {
             let sub_chunk = sub.chunk();
-            let dist_sq = dist_sq(pos, sub_chunk);
+            let dist_sq = util::dist_sq(pos, sub_chunk);
 
             if dist_sq >= KEEP_DIST * KEEP_DIST {
                 self.chunks.remove(&pos);
@@ -172,11 +171,4 @@ impl World {
     pub fn generate_count(&self) -> usize { self.chunks_to_generate.len() }
     pub fn render_count(&self) -> usize { self.chunks_to_render.len() }
     pub fn total_count(&self) -> usize { self.chunks.len() }
-}
-
-fn dist_sq(pos1: (i32, i32, i32), pos2: (i32, i32, i32)) -> i32 {
-    let dx = pos1.0 - pos2.0;
-    let dy = pos1.1 - pos2.1;
-    let dz = pos1.2 - pos2.2;
-    dx * dx + dy * dy + dz * dz
 }

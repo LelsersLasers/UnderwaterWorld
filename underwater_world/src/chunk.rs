@@ -3,14 +3,17 @@ use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
 pub const CHUNK_SIZE: usize = 16;
+pub const INTERNAL_SIZE: usize = 12;
+const SIZE_SCALE: f32 = CHUNK_SIZE as f32 / INTERNAL_SIZE as f32;
+
 pub const PERLIN_OCTAVES: u32 = 3;
 pub const ISO_LEVEL: f32 = -0.1;
 pub const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
 
-const X_GENERATION_STEP_ISO: i32 = 9;
-const X_GENERATION_STEP_MESH: i32 = 3;
+const X_GENERATION_STEP_ISO: i32 = 13;
+const X_GENERATION_STEP_MESH: i32 = 6;
 
-const ISO_LEN: usize = CHUNK_SIZE + 1;
+const ISO_LEN: usize = INTERNAL_SIZE + 1;
 
 enum BuildState {
     Done,
@@ -81,14 +84,18 @@ impl Chunk {
 
     fn build_iso(&mut self, perlin: &noise::Perlin) -> bool {
         for _ in 0..X_GENERATION_STEP_ISO {
-            for y in 0..(CHUNK_SIZE + 1) {
-                for z in 0..(CHUNK_SIZE + 1) {
-                    let iso = perlin_util::iso_at(
-                        perlin,
-                        (self.build.x + self.build.chunk_offset[0]) as f64 / CHUNK_SIZE as f64,
-                        (y as i32     + self.build.chunk_offset[1]) as f64 / CHUNK_SIZE as f64,
-                        (z as i32     + self.build.chunk_offset[2]) as f64 / CHUNK_SIZE as f64,
-                    );
+            let local_perlin_x = self.build.x as f64 * SIZE_SCALE as f64;
+            let perlin_x = (local_perlin_x + self.build.chunk_offset[0] as f64) / CHUNK_SIZE as f64;
+
+            for y in 0..(INTERNAL_SIZE + 1) {
+                let local_perlin_y = y as f64 * SIZE_SCALE as f64;
+                let perlin_y = (local_perlin_y + self.build.chunk_offset[1] as f64) / CHUNK_SIZE as f64;
+
+                for z in 0..(INTERNAL_SIZE + 1) {
+                    let local_perlin_z = z as f64 * SIZE_SCALE as f64;
+                    let perlin_z = (local_perlin_z + self.build.chunk_offset[2] as f64) / CHUNK_SIZE as f64;
+
+                    let iso = perlin_util::iso_at(perlin, perlin_x, perlin_y, perlin_z);
                     self.build.isos.push(iso);
                 }
             }
@@ -106,12 +113,13 @@ impl Chunk {
     }
 
     fn build_mesh(&mut self) -> bool {
+        let chunk_offset = self.build.chunk_offset;
+
         for _ in 0..X_GENERATION_STEP_MESH {
             let x = self.build.x as usize;
-            let chunk_offset = self.build.chunk_offset;
 
-            for y in 0..CHUNK_SIZE {
-                for z in 0..CHUNK_SIZE {
+            for y in 0..INTERNAL_SIZE {
+                for z in 0..INTERNAL_SIZE {
 
                     let cube_corners = [
                         [x, y, z],
@@ -154,6 +162,17 @@ impl Chunk {
                         let corner_a = cube_corners[corner_a_idx];
                         let corner_b = cube_corners[corner_b_idx];
 
+                        let scaled_corner_a = [
+                            corner_a[0] as f32 * SIZE_SCALE,
+                            corner_a[1] as f32 * SIZE_SCALE,
+                            corner_a[2] as f32 * SIZE_SCALE,
+                        ];
+                        let scaled_corner_b = [
+                            corner_b[0] as f32 * SIZE_SCALE,
+                            corner_b[1] as f32 * SIZE_SCALE,
+                            corner_b[2] as f32 * SIZE_SCALE,
+                        ];
+
                         let iso_idx_a = corner_to_iso_idx(corner_a);
                         let iso_idx_b = corner_to_iso_idx(corner_b);
 
@@ -163,14 +182,14 @@ impl Chunk {
                         // interpolate using dist from iso
                         let t = (ISO_LEVEL - iso_a) / (iso_b - iso_a);
                         let corner_diff = [
-                            corner_b[0] as f32 - corner_a[0] as f32,
-                            corner_b[1] as f32 - corner_a[1] as f32,
-                            corner_b[2] as f32 - corner_a[2] as f32,
+                            scaled_corner_b[0] - scaled_corner_a[0],
+                            scaled_corner_b[1] - scaled_corner_a[1],
+                            scaled_corner_b[2] - scaled_corner_a[2],
                         ];
                         let middle = [
-                            corner_a[0] as f32 + t * corner_diff[0],
-                            corner_a[1] as f32 + t * corner_diff[1],
-                            corner_a[2] as f32 + t * corner_diff[2],
+                            scaled_corner_a[0] + t * corner_diff[0],
+                            scaled_corner_a[1] + t * corner_diff[1],
+                            scaled_corner_a[2] + t * corner_diff[2],
                         ];
 
                         let color_intensity = *tri_index as f32 / 16.0;
@@ -199,12 +218,12 @@ impl Chunk {
 
             self.build.x += 1;
 
-            if self.build.x == CHUNK_SIZE as i32 { break; }
+            if self.build.x == INTERNAL_SIZE as i32 { break; }
         }
 
         self.build.num_verts = self.build.verts.len();
 
-        self.build.x == CHUNK_SIZE as i32
+        self.build.x == INTERNAL_SIZE as i32
     }
 
     pub fn build_full(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
@@ -249,8 +268,19 @@ impl Chunk {
         }
     }
 
-    pub fn tris_at(&self, pos: (usize, usize, usize)) -> &[util::Tri] {
-        match self.build.tris.get(&pos) {
+    pub fn tris_at(&self, pos: (i32, i32, i32)) -> &[util::Tri] {
+        let scaled_pos = (
+            pos.0 as f32 / SIZE_SCALE,
+            pos.1 as f32 / SIZE_SCALE,
+            pos.2 as f32 / SIZE_SCALE,
+        );
+        let rounded_pos = (
+            scaled_pos.0.round() as usize,
+            scaled_pos.1.round() as usize,
+            scaled_pos.2.round() as usize,
+        );
+
+        match self.build.tris.get(&rounded_pos) {
             Some(tris) => tris,
             None => &[],
         }
@@ -263,5 +293,5 @@ impl Chunk {
 }
 
 fn corner_to_iso_idx(corner: [usize; 3]) -> usize {
-    corner[0] * (CHUNK_SIZE + 1) * (CHUNK_SIZE + 1) + corner[1] * (CHUNK_SIZE + 1) + corner[2]
+    corner[0] * ISO_LEN * ISO_LEN + corner[1] * ISO_LEN + corner[2]
 }
