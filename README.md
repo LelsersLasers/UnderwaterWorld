@@ -4,9 +4,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
-- Bugs
-    - Frozen on sub pos clamp
-        - Caused by boid wrapping z issues I think
 - Preformance
     - What are actually the slow parts?
     - Chunk generation
@@ -16,6 +13,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - Still not fast enough by a little bit + slow on startup
             - Sort of works when `GENERATION_DIST - VIEW_DIST == 2`
                 - But then, constantly generating chunks + many never get used
+        - On first load, full build chunks but still one at a time
 - 3d fish/boids
     - Performance
         - 3d space partitioning
