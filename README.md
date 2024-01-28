@@ -8,6 +8,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - What are actually the slow parts?
     - Chunk generation
         - Split across frames
+        - After isos are built, do a quick full blank check
         - Issue: chunks are not created fast enough, can see them "pop" in
         - Attempted solution: start generating them before they are in the view dist?
             - Still not fast enough by a little bit + slow on startup

@@ -31,7 +31,7 @@ impl RemoveState {
 pub struct World {
     chunks: HashMap<(i32, i32, i32), chunk::Chunk>,
     chunks_to_render: Vec<(i32, i32, i32)>,
-    chunks_to_generate: Vec<(i32, i32, i32)>,
+    chunks_to_generate: Vec<((i32, i32, i32), f32)>,
     generating_chunk: Option<GeneratingChunk>,
     last_sub_pos: cgmath::Vector3<f32>,
     remove_state: RemoveState,
@@ -73,7 +73,7 @@ impl World {
     }
 
     fn build_full_step(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
-        if let Some(pos) = self.chunks_to_generate.pop() {
+        if let Some((pos, _dist)) = self.chunks_to_generate.pop() {
             let mut chunk = chunk::Chunk::new(pos);
             chunk.build_full(perlin, device);
             if chunk.not_blank() {
@@ -95,7 +95,7 @@ impl World {
                 self.chunks.insert(pos, self.generating_chunk.take().unwrap().chunk);
                 self.generating_chunk = None;
             }
-        } else if let Some(pos) = self.chunks_to_generate.pop() {
+        } else if let Some((pos, _dist)) = self.chunks_to_generate.pop() {
             let chunk = chunk::Chunk::new(pos);
             self.generating_chunk = Some(GeneratingChunk { chunk_pos: pos, chunk });
         }
@@ -139,19 +139,16 @@ impl World {
                             }
                         }
                         None => {
-                            self.chunks_to_generate.push(chunk_pos);
+                            let sort = dist * dist + chunk_z as f32 * chunk::CHUNK_SIZE as f32;
+                            self.chunks_to_generate.push((chunk_pos, sort));
                         }
                     }
                 }
             }
         }
 
-        self.chunks_to_generate.sort_unstable_by_key(|(x, y, z)| {
-            let dx = x - sub_chunk.0;
-            let dy = y - sub_chunk.1;
-            let dz = z - sub_chunk.2;
-
-            -(dx * dx + dy * dy + dz * dz + z)
+        self.chunks_to_generate.sort_unstable_by(|(_pos1, dist1), (_pos2, dist2)| {
+            dist2.partial_cmp(dist1).unwrap()
         });
     }
 
