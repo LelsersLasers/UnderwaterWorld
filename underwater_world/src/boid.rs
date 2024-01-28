@@ -22,7 +22,7 @@ const DOWN_STEER_MULT: f32 = -0.1;
 const NUM_BOIDS: usize = 100;
 // Note: this is the number of boids per species
 
-const WRAP_STRENGTH: f32 = 1.95;
+const WRAP_STRENGTH: f32 = 1.975;
 
 const FISH_SCALE: f32 = 0.75;
 

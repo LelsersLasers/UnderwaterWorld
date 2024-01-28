@@ -231,12 +231,14 @@ impl Chunk {
             BuildState::Mesh => {
                 let finished = self.build_mesh();
                 if finished {
-                    let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some(&format!("{:?} Chunk Vertex Buffer", self.build.chunk_offset)),
-                        contents: bytemuck::cast_slice(&self.build.verts),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    });
-                    self.verts_buffer = Some(verts_buffer);
+                    if self.build.num_verts > 0 {
+                        let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                            label: Some(&format!("{:?} Chunk Vertex Buffer", self.build.chunk_offset)),
+                            contents: bytemuck::cast_slice(&self.build.verts),
+                            usage: wgpu::BufferUsages::VERTEX,
+                        });
+                        self.verts_buffer = Some(verts_buffer);
+                    }
 
                     self.build_state = BuildState::Done;
                     self.build.finish();
