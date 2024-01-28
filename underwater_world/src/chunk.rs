@@ -101,6 +101,10 @@ impl Chunk {
         self.build.x == ISO_LEN as i32
     }
 
+    fn early_blank_check(&self) -> bool {
+        self.build.isos.iter().all(|iso| *iso > ISO_LEVEL)
+    }
+
     fn build_mesh(&mut self) -> bool {
         for _ in 0..X_GENERATION_STEP_MESH {
             let x = self.build.x as usize;
@@ -213,8 +217,14 @@ impl Chunk {
             BuildState::Iso => {
                 let finished = self.build_iso(perlin);
                 if finished {
-                    self.build_state = BuildState::Mesh;
-                    self.build.start_mesh();
+                    let blank_check = self.early_blank_check();
+                    if blank_check {
+                        self.build_state = BuildState::Done;
+                        self.build.finish();
+                    } else {
+                        self.build_state = BuildState::Mesh;
+                        self.build.start_mesh();
+                    }
                 }
                 false
             },
