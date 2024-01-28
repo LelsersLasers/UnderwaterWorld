@@ -150,7 +150,8 @@ impl World {
             let dx = x - sub_chunk.0;
             let dy = y - sub_chunk.1;
             let dz = z - sub_chunk.2;
-            -(dx * dx + dy * dy + dz * dz)
+
+            -(dx * dx + dy * dy + dz * dz + z)
         });
     }
 
