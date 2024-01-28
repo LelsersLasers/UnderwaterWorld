@@ -364,7 +364,6 @@ impl<'a> State<'a> {
         
         let mut world = world::World::new();
         world.update_nearby(&sub);
-        world.build_full(&perlin, &device);
 
         let boid_manager = boid::BoidManager::new(&sub, &perlin, &device, &queue, &texture_bind_group_layout);
         //--------------------------------------------------------------------//

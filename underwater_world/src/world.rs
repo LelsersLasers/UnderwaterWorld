@@ -11,6 +11,8 @@ const KEEP_DIST: i32 = 6;
 const MAX_Z: i32 = 2;
 const MIN_Z: i32 = -2;
 
+const STOP_FULL_BUILD: i32 = GENERATION_DIST * GENERATION_DIST * GENERATION_DIST;
+
 struct GeneratingChunk {
     chunk_pos: (i32, i32, i32),
     chunk: chunk::Chunk,
@@ -33,6 +35,7 @@ pub struct World {
     generating_chunk: Option<GeneratingChunk>,
     last_sub_pos: cgmath::Vector3<f32>,
     remove_state: RemoveState,
+    should_full_build: bool,
 }
 
 impl World {
@@ -44,19 +47,12 @@ impl World {
             generating_chunk: None,
             last_sub_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
             remove_state: RemoveState::new(),
+            should_full_build: true,
         }
     }
 
     pub fn get_chunk(&self, pos: (i32, i32, i32)) -> Option<&chunk::Chunk> {
         self.chunks.get(&pos)
-    }
-
-    pub fn build_full(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
-        for pos in self.chunks_to_generate.drain(..) {
-            let mut chunk = chunk::Chunk::new(pos);
-            chunk.build_full(perlin, device);
-            self.chunks.insert(pos, chunk);
-        }
     }
 
     pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
@@ -67,9 +63,25 @@ impl World {
         }
 
         self.remove_far_way(sub);
-        self.build_step(perlin, device);
 
-        // println!("chunks_to_generate: {}", self.chunks_to_generate.len());
+        if self.should_full_build {
+            self.build_full_step(perlin, device);
+            self.should_full_build = !(self.chunks_to_generate.is_empty() || self.chunks.len() >= STOP_FULL_BUILD as usize);
+        } else {
+            self.build_step(perlin, device);
+        }
+    }
+
+    fn build_full_step(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
+        if let Some(pos) = self.chunks_to_generate.pop() {
+            let mut chunk = chunk::Chunk::new(pos);
+            chunk.build_full(perlin, device);
+            if chunk.not_blank() {
+                self.chunks_to_render.push(pos);
+            }
+
+            self.chunks.insert(pos, chunk);
+        }
     }
 
     fn build_step(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
@@ -87,8 +99,6 @@ impl World {
             let chunk = chunk::Chunk::new(pos);
             self.generating_chunk = Some(GeneratingChunk { chunk_pos: pos, chunk });
         }
-
-        // self.generating_chunk.is_none() && self.chunks_to_generate.is_empty()
     }
 
 
