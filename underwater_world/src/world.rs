@@ -7,7 +7,7 @@ const RECHECK_NEARBY_DIST: f32 = 4.0;
 
 pub const VIEW_DIST: i32 = 4;
 const GENERATION_DIST: i32 = 5;
-const KEEP_DIST: i32 = 7;
+const KEEP_DIST: i32 = 6;
 const MAX_Z: i32 = 2;
 const MIN_Z: i32 = -2;
 
