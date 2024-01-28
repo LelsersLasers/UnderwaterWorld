@@ -7,7 +7,7 @@ const RECHECK_NEARBY_DIST: f32 = 4.0;
 
 pub const VIEW_DIST: i32 = 4;
 const GENERATION_DIST: i32 = 5;
-const KEEP_DIST: i32 = 8;
+const KEEP_DIST: i32 = 7;
 const MAX_Z: i32 = 2;
 const MIN_Z: i32 = -2;
 
@@ -159,11 +159,9 @@ impl World {
         }
     }
 
-    pub fn chunks_to_render(&self) -> &[(i32, i32, i32)] {
-        &self.chunks_to_render
-    }
+    pub fn chunks_to_render(&self) -> &[(i32, i32, i32)] { &self.chunks_to_render }
 
-    pub fn generate_count(&self) -> usize {
-        self.chunks_to_generate.len()
-    }
+    pub fn generate_count(&self) -> usize { self.chunks_to_generate.len() }
+    pub fn render_count(&self) -> usize { self.chunks_to_render.len() }
+    pub fn total_count(&self) -> usize { self.chunks.len() }
 }
