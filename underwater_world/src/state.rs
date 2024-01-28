@@ -18,12 +18,6 @@ pub struct State<'a> {
     sub_render_pipeline: wgpu::RenderPipeline,
     fish_render_pipeline: wgpu::RenderPipeline,
 
-    // vertex_buffer: wgpu::Buffer,
-    // index_buffer: wgpu::Buffer,
-
-    // instances: Vec<draw::Instance>,
-    // instance_buffer: wgpu::Buffer,
-
     depth_texture: texture::Texture,
 
     camera: camera::Camera,
@@ -48,7 +42,6 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    // Creating some of the wgpu types requires async code
     pub async fn new(window: winit::window::Window) -> Self {
         let size = window.inner_size();
 
@@ -100,8 +93,6 @@ impl<'a> State<'a> {
                 &wgpu::DeviceDescriptor {
                     // features: wgpu::Features::POLYGON_MODE_LINE,
                     features: wgpu::Features::empty(),
-                    // WebGL doesn't support all of wgpu's features, so if
-                    // we're building for the web, we'll have to disable some.
                     limits: if cfg!(target_arch = "wasm32") {
                         wgpu::Limits::downlevel_webgl2_defaults()
                     } else {
@@ -117,9 +108,6 @@ impl<'a> State<'a> {
 
         //--------------------------------------------------------------------//
         let surface_caps = surface.get_capabilities(&adapter);
-        // Shader code in this tutorial assumes an sRGB surface texture. Using a different
-        // one will result in all the colors coming out darker. If you want to support non
-        // sRGB surfaces, you'll need to account for that when drawing to the frame.
         let surface_format = surface_caps
             .formats
             .iter()
@@ -205,8 +193,6 @@ impl<'a> State<'a> {
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::FRAGMENT,
-                        // This should match the filterable field of the
-                        // corresponding Texture entry above.
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
@@ -365,52 +351,6 @@ impl<'a> State<'a> {
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        // let vertex_buffer = device.create_buffer_init(
-        //     &wgpu::util::BufferInitDescriptor {
-        //         label: Some("Vertex Buffer"),
-        //         contents: bytemuck::cast_slice(draw::VERTICES),
-        //         usage: wgpu::BufferUsages::VERTEX,
-        //     }
-        // );
-        // let index_buffer = device.create_buffer_init(
-        //     &wgpu::util::BufferInitDescriptor {
-        //         label: Some("Index Buffer"),
-        //         contents: bytemuck::cast_slice(draw::INDICES),
-        //         usage: wgpu::BufferUsages::INDEX,
-        //     }
-        // );
-        //--------------------------------------------------------------------//
-
-        //--------------------------------------------------------------------//
-        // let instances = (0..draw::NUM_INSTANCES_PER_ROW).flat_map(|y| {
-        //     (0..draw::NUM_INSTANCES_PER_ROW).map(move |x| {
-        //         let position = cgmath::Vector3 { x: x as f32, y: y as f32, z: 0.0 } - draw::INSTANCE_DISPLACEMENT;
-
-        //         let rotation = if position.is_zero() {
-        //             // this is needed so an object at (0, 0, 0) won't get scaled to zero
-        //             // as Quaternions can affect scale if they're not created correctly
-        //             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0))
-        //         } else {
-        //             cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
-        //         };
-
-        //         draw::Instance {
-        //             position, rotation,
-        //         }
-        //     })
-        // }).collect::<Vec<_>>();
-
-        // let instance_data = instances.iter().map(draw::Instance::to_raw).collect::<Vec<_>>();
-        // let instance_buffer = device.create_buffer_init(
-        //     &wgpu::util::BufferInitDescriptor {
-        //         label: Some("Instance Buffer"),
-        //         contents: bytemuck::cast_slice(&instance_data),
-        //         usage: wgpu::BufferUsages::VERTEX,
-        //     }
-        // );
-        //--------------------------------------------------------------------//
-
-        //--------------------------------------------------------------------//
         let fps_counter = timer::FpsCounter::new();
         let fpses = Vec::new();
         //--------------------------------------------------------------------//
@@ -440,10 +380,6 @@ impl<'a> State<'a> {
             terrain_render_pipeline,
             sub_render_pipeline,
             fish_render_pipeline,
-            // vertex_buffer,
-            // index_buffer,
-            // instances,
-            // instance_buffer,
             depth_texture,
             camera,
             camera_buffer,
