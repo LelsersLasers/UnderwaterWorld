@@ -83,9 +83,8 @@ impl Boid {
         }
     }
 
-    fn wrap(&mut self, sub: &sub::Sub, perlin: &noise::Perlin) -> (cgmath::Vector3<f32>, bool) {
+    fn wrap(&mut self, sub: &sub::Sub, perlin: &noise::Perlin) -> cgmath::Vector3<f32> {
         let mut acceleration = cgmath::Vector3::zero();
-        let mut wrapped = false;
 
         let sub_pos = sub.pos();
 
@@ -98,8 +97,6 @@ impl Boid {
         let sub_offset_xy = cgmath::Vector2::new(sub_pos.x - self.position.x, sub_pos.y - self.position.y);
         let sub_distance_xy = sub_offset_xy.magnitude();
         if sub_distance_xy > POS_RANGE_XY {
-            wrapped = true;
-
             let new_x = sub_offset_xy.x * WRAP_STRENGTH + self.position.x;
             let new_y = sub_offset_xy.y * WRAP_STRENGTH + self.position.y;
 
@@ -123,7 +120,7 @@ impl Boid {
             self.position = new_pos;
         }
 
-        (acceleration, wrapped)
+        acceleration
     }
 
     fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
@@ -141,12 +138,8 @@ impl Boid {
             acceleration += cohesion_force;
         }
 
-        let mut should_try_wrap = true;
-        while should_try_wrap {
-            let (wrap_force, wrapped) = self.wrap(sub, perlin);
-            should_try_wrap = wrapped;
-            acceleration += wrap_force;
-        }
+        let wrap_force = self.wrap(sub, perlin);
+        acceleration += wrap_force;
 
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
         acceleration += down_force;
