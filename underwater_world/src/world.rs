@@ -68,7 +68,7 @@ impl World {
             self.build_full_step(perlin, device);
             self.should_full_build = !(self.chunks_to_generate.is_empty() || self.chunks.len() >= STOP_FULL_BUILD as usize);
         } else {
-            self.build_step(perlin, device);
+            self.build_step(sub, perlin, device);
         }
     }
 
@@ -84,12 +84,14 @@ impl World {
         }
     }
 
-    fn build_step(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
+    fn build_step(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
         if let Some(generating_chunk) = &mut self.generating_chunk {
             let finished = generating_chunk.chunk.build_partial(perlin, device);
             if finished {
                 let pos = generating_chunk.chunk_pos;
-                if generating_chunk.chunk.not_blank() {
+                let sub_chunk = sub.chunk();
+                let dist_sq = dist_sq(pos, sub_chunk);
+                if generating_chunk.chunk.not_blank() && dist_sq <= (VIEW_DIST + 1) * (VIEW_DIST + 1) {
                     self.chunks_to_render.push(pos);
                 }
                 self.chunks.insert(pos, self.generating_chunk.take().unwrap().chunk);
@@ -155,11 +157,9 @@ impl World {
     fn remove_far_way(&mut self, sub: &sub::Sub) {
         if let Some(pos) = self.remove_state.keys_left.pop() {
             let sub_chunk = sub.chunk();
-            let dx = pos.0 - sub_chunk.0;
-            let dy = pos.1 - sub_chunk.1;
-            let dz = pos.2 - sub_chunk.2;
+            let dist_sq = dist_sq(pos, sub_chunk);
 
-            if dx * dx + dy * dy + dz * dz >= KEEP_DIST * KEEP_DIST {
+            if dist_sq >= KEEP_DIST * KEEP_DIST {
                 self.chunks.remove(&pos);
             }
         } else {
@@ -172,4 +172,11 @@ impl World {
     pub fn generate_count(&self) -> usize { self.chunks_to_generate.len() }
     pub fn render_count(&self) -> usize { self.chunks_to_render.len() }
     pub fn total_count(&self) -> usize { self.chunks.len() }
+}
+
+fn dist_sq(pos1: (i32, i32, i32), pos2: (i32, i32, i32)) -> i32 {
+    let dx = pos1.0 - pos2.0;
+    let dy = pos1.1 - pos2.1;
+    let dz = pos1.2 - pos2.2;
+    dx * dx + dy * dy + dz * dz
 }
