@@ -94,7 +94,7 @@ pub async fn run() {
                     // The system is out of memory, we should probably quit
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = winit::event_loop::ControlFlow::Exit,
                     // All other errors (Outdated, Timeout) should be resolved by the next frame
-                    Err(e) => eprintln!("{:?}", e),
+                    Err(e) => eprintln!("Non-fatal wgpu::SurfaceError: {:?}", e),
                 }
             }
             winit::event::Event::MainEventsCleared => {
