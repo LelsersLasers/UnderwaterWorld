@@ -268,22 +268,51 @@ impl Chunk {
         }
     }
 
-    pub fn tris_at(&self, pos: (i32, i32, i32)) -> &[util::Tri] {
-        let scaled_pos = (
-            pos.0 as f32 / SIZE_SCALE,
-            pos.1 as f32 / SIZE_SCALE,
-            pos.2 as f32 / SIZE_SCALE,
-        );
-        let rounded_pos = (
-            scaled_pos.0.round() as usize,
-            scaled_pos.1.round() as usize,
-            scaled_pos.2.round() as usize,
-        );
+    // pub fn tris_at(&self, pos: (i32, i32, i32)) -> &[util::Tri] {
+    //     let scaled_pos = (
+    //         pos.0 as f32 / SIZE_SCALE,
+    //         pos.1 as f32 / SIZE_SCALE,
+    //         pos.2 as f32 / SIZE_SCALE,
+    //     );
+    //     let rounded_pos = (
+    //         scaled_pos.0.round() as usize,
+    //         scaled_pos.1.round() as usize,
+    //         scaled_pos.2.round() as usize,
+    //     );
 
-        match self.build.tris.get(&rounded_pos) {
-            Some(tris) => tris,
-            None => &[],
+    //     match self.build.tris.get(&rounded_pos) {
+    //         Some(tris) => tris,
+    //         None => &[],
+    //     }
+    // }
+
+    pub fn tris_around(&self, local_pos_percent: (f32, f32, f32), range: i32) -> Vec<util::Tri> {
+        let middle_x = (local_pos_percent.0 * INTERNAL_SIZE as f32).floor() as i32;
+        let middle_y = (local_pos_percent.1 * INTERNAL_SIZE as f32).floor() as i32;
+        let middle_z = (local_pos_percent.2 * INTERNAL_SIZE as f32).floor() as i32;
+
+        let start_x = (middle_x - range).max(0) as usize;
+        let start_y = (middle_y - range).max(0) as usize;
+        let start_z = (middle_z - range).max(0) as usize;
+
+        let end_x = (middle_x + range).min(INTERNAL_SIZE as i32) as usize;
+        let end_y = (middle_y + range).min(INTERNAL_SIZE as i32) as usize;
+        let end_z = (middle_z + range).min(INTERNAL_SIZE as i32) as usize;
+
+        let mut tris = Vec::new();
+
+        for x in start_x..=end_x {
+            for y in start_y..=end_y {
+                for z in start_z..=end_z {
+                    let key = (x, y, z);
+                    if let Some(chunk_tris) = self.build.tris.get(&key) {
+                        tris.extend_from_slice(chunk_tris);
+                    }
+                }
+            }
         }
+
+        tris
     }
 
     pub fn not_blank(&self) -> bool { self.verts_buffer.is_some() }

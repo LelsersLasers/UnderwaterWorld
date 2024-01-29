@@ -7,24 +7,30 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Preformance
     - What are actually the slow parts?
     - Chunk generation
-        - Issue: chunks are not created fast enough, can see them "pop" in
-        - Attempted solution: start generating them before they are in the view dist?
+        - Start generating them before they are in the view dist
             - Still not fast enough at 60 FPS
             - Sort of works when `GENERATION_DIST - VIEW_DIST >= 2`
-    - "Downscale" chunks
-        - They are 16x16x16 in world space but only 12x12x12 in local space
-        - Shouldn't actually effect too much except for the boid wall avoidance
+        - Build them across multiple frames
+        - "Downscale" chunks
+            - They are 16x16x16 in world space but only 12x12x12 in local space
+            - Shouldn't actually effect too much except for the boid wall avoidance
 - 3d fish/boids
     - Performance
         - 3d space partitioning
-            - Is this actually helpful??
+            - Is this actually helpful/needed??
         - The slowest part is actually the raycasting/wall collision checks
             - Might be a faster way to early exit
+                - Early dist check before intersection check?
+                - Know we only want the closest t, look for that first?
         - Is it fine actually?
-    - Smoother wall avoidence
-        - Don't reset acceration between frames?
-            - Or don't reset `wall_avoidence_acceleration` each frame?
-            - And have it decay to 0 over ~1 second?
+    - Wall avoidence
+        - Smoother wall avoidence
+            - Don't reset acceration between frames?
+                - Or don't reset `wall_avoidence_acceleration` each frame?
+                - And have it decay to 0 over ~1 second?
+        - Better system
+            - Multiple rays?
+            - Perpendicular to the normal?
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
