@@ -4,6 +4,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
+- 2 camera views
+    - Can have different Z_NEAR
 - Preformance
     - What are actually the slow parts?
     - Chunk generation
