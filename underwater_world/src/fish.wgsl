@@ -1,5 +1,6 @@
 struct CameraUniform {
-    view_proj: mat4x4<f32>,
+    view_proj_main: mat4x4<f32>,
+    view_proj_fish: mat4x4<f32>,
 };
 
 @group(0) @binding(0)
@@ -68,7 +69,7 @@ fn vs_main(
 
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
-    out.clip_position = camera.view_proj * model_matrix * pos;
+    out.clip_position = camera.view_proj_fish * model_matrix * pos;
     out.dist = length(out.clip_position.xyz);
     return out;
 }

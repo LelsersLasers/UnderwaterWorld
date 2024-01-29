@@ -1,7 +1,8 @@
 use crate::{chunk, world};
 use cgmath::SquareMatrix;
 
-const Z_NEAR: f32 = 2.0;
+const Z_NEAR_MAIN: f32 = 2.0;
+const Z_NEAR_FISH: f32 = 0.1;
 const Z_FAR: f32 = chunk::CHUNK_SIZE as f32 * (world::VIEW_DIST + 1) as f32;
 const FOVY: f32 = 45.0;
 
@@ -38,27 +39,27 @@ impl Camera {
         &self.uniform
     }
 
-    fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
-        let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
-        let proj = cgmath::perspective(cgmath::Deg(FOVY), self.aspect, Z_NEAR, Z_FAR);
-        proj * view
-    }
-
     pub fn update_uniform(&mut self) {
-        self.uniform.view_proj =
-            (OPENGL_TO_WGPU_MATRIX * self.build_view_projection_matrix()).into();
+        let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
+        let proj_main = cgmath::perspective(cgmath::Deg(FOVY), self.aspect, Z_NEAR_MAIN, Z_FAR);
+        let proj_fish = cgmath::perspective(cgmath::Deg(FOVY), self.aspect, Z_NEAR_FISH, Z_FAR);
+
+        self.uniform.view_proj_main = (OPENGL_TO_WGPU_MATRIX * (proj_main * view)).into();
+        self.uniform.view_proj_fish = (OPENGL_TO_WGPU_MATRIX * (proj_fish * view)).into();
     }
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CameraUniform {
-    view_proj: [[f32; 4]; 4],
+    view_proj_main: [[f32; 4]; 4],
+    view_proj_fish: [[f32; 4]; 4],
 }
 impl CameraUniform {
     fn new() -> Self {
         Self {
-            view_proj: cgmath::Matrix4::identity().into(),
+            view_proj_main: cgmath::Matrix4::identity().into(),
+            view_proj_fish: cgmath::Matrix4::identity().into(),
         }
     }
 }
