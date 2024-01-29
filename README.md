@@ -20,6 +20,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - Is this actually helpful??
         - The slowest part is actually the raycasting/wall collision checks
             - Might be a faster way to early exit
+                - Early dist check before intersection check?
+                - Know we only want the closest t, look for that first?
         - Is it fine actually?
     - Smoother wall avoidence
         - Don't reset acceration between frames?

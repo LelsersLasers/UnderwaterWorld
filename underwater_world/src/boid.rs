@@ -146,6 +146,7 @@ impl Boid {
 
 
         // TODO: look for earlier break? (because know we only care about the closest wall)
+        // TODO: early dist check before intersection check?
 
         let mut closest_t = None;
         let mut closest_normal = None;
