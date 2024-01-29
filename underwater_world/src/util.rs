@@ -1,5 +1,6 @@
 use cgmath::InnerSpace;
 
+#[derive(Clone, Copy)]
 pub struct Tri {
     pub verts: [cgmath::Vector3<f32>; 3],
     pub normal: cgmath::Vector3<f32>,
@@ -62,4 +63,11 @@ pub fn safe_normalize(v: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
 
 pub fn safe_normalize_to(v: cgmath::Vector3<f32>, target: f32) -> cgmath::Vector3<f32> {
    safe_normalize(v) * target
+}
+
+pub fn dist_sq(pos1: (i32, i32, i32), pos2: (i32, i32, i32)) -> i32 {
+    let dx = pos1.0 - pos2.0;
+    let dy = pos1.1 - pos2.1;
+    let dz = pos1.2 - pos2.2;
+    dx * dx + dy * dy + dz * dz
 }

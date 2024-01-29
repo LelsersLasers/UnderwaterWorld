@@ -19,8 +19,8 @@ const MAX_STEER_FORCE: f32 = 4.0;
 
 const DOWN_STEER_MULT: f32 = -0.1;
 
-const NUM_BOIDS: usize = 100;
 // Note: this is the number of boids per species
+const NUM_BOIDS: usize = 100;
 
 const WRAP_STRENGTH: f32 = 1.975;
 
@@ -88,13 +88,13 @@ impl Boid {
 
         let sub_pos = sub.pos();
 
-        let sub_offset_z = self.position.z - sub_pos.z;
-        if sub_offset_z < -POS_RANGE_Z {
+        let sub_offset = sub_pos - self.position;
+        if sub_offset.z < -POS_RANGE_Z {
             let sub_force = self.steer_towards(-cgmath::Vector3::unit_z());
             acceleration += sub_force;
         }
 
-        let sub_offset_xy = cgmath::Vector2::new(sub_pos.x - self.position.x, sub_pos.y - self.position.y);
+        let sub_offset_xy = sub_offset.truncate();
         let sub_distance_xy = sub_offset_xy.magnitude();
         if sub_distance_xy > POS_RANGE_XY {
             let new_x = sub_offset_xy.x * WRAP_STRENGTH + self.position.x;
@@ -144,44 +144,42 @@ impl Boid {
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
         acceleration += down_force;
 
-        let x_i32 = self.position.x.ceil() as i32;
-        let y_i32 = self.position.y.ceil() as i32;
-        let z_i32 = self.position.z.ceil() as i32;
+
+        // TODO: look for earlier break? (because know we only care about the closest wall)
+        // TODO: early dist check before intersection check?
 
         let mut closest_t = None;
         let mut closest_normal = None;
 
+        let world_start_x = ((self.position.x - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_start_y = ((self.position.y - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_start_z = ((self.position.z - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
 
-        // TODO: sort and check in a more efficient way
-        // Try to find a way to break earlier
-        // let orderings = -WALL_RANGE..WALL_RANGE;
-        // let mut orderings = orderings.into_iter().collect::<Vec<i32>>();
-        // orderings.sort_by_key(|&x| x.abs());
+        let world_end_x = ((self.position.x + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_end_y = ((self.position.y + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_end_z = ((self.position.z + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
 
-        for x in (x_i32 - WALL_RANGE)..(x_i32 + WALL_RANGE) {
-            for y in (y_i32 - WALL_RANGE)..(y_i32 + WALL_RANGE) {
-                for z in (z_i32 - WALL_RANGE)..(z_i32 + WALL_RANGE) {
-                    let dist_sq = (x - x_i32).pow(2) + (y - y_i32).pow(2) + (z - z_i32).pow(2);
-                    if dist_sq > WALL_RANGE.pow(2) {
-                        continue;
-                    }
+        for a in world_start_x..=world_end_x {
+            let local_x = self.position.x - a as f32 * chunk::CHUNK_SIZE as f32;
+            let local_percent_x = local_x / chunk::CHUNK_SIZE as f32;
 
-                    let world_x = (x as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
-                    let world_y = (y as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
-                    let world_z = (z as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
-                    let chunk_pos = (world_x, world_y, world_z);
+            for b in world_start_y..=world_end_y {
+                let local_y = self.position.y - b as f32 * chunk::CHUNK_SIZE as f32;
+                let local_percent_y = local_y / chunk::CHUNK_SIZE as f32;
+
+                for c in world_start_z..=world_end_z {
+                    let chunk_pos = (a, b, c);
 
                     let chunk = match world.get_chunk(chunk_pos) {
                         Some(chunk) => chunk,
                         None => continue,
                     };
 
-                    let chunk_x = x - world_x * chunk::CHUNK_SIZE as i32;
-                    let chunk_y = y - world_y * chunk::CHUNK_SIZE as i32;
-                    let chunk_z = z - world_z * chunk::CHUNK_SIZE as i32;
-                    let local_pos = (chunk_x as usize, chunk_y as usize, chunk_z as usize);
+                    let local_z = self.position.z - c as f32 * chunk::CHUNK_SIZE as f32;
+                    let local_percent_z = local_z / chunk::CHUNK_SIZE as f32;
 
-                    let tris = chunk.tris_at(local_pos);
+                    let local_pos_percent = (local_percent_x, local_percent_y, local_percent_z);
+                    let tris = chunk.tris_around(local_pos_percent, WALL_RANGE);
 
                     for tri in tris {
                         let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
@@ -192,7 +190,7 @@ impl Boid {
                             }
                         }
                     }
-                }
+                }   
             }
         }
 
@@ -205,6 +203,7 @@ impl Boid {
             acceleration += force;
         }
 
+        
         self.velocity += acceleration * delta;
         let target_speed = self.velocity.magnitude().clamp(MIN_SPEED, MAX_SPEED);
         self.velocity = util::safe_normalize_to(self.velocity, target_speed);
@@ -267,13 +266,10 @@ fn random_pos(rng: &mut ThreadRng, perlin: &noise::Perlin, sub: &sub::Sub) -> cg
 
 struct PerSpecies {
     diffuse_bind_group: wgpu::BindGroup,
-    // diffuse_texture: texture::Texture,
 
     verts_buffer: wgpu::Buffer,
-    // ind_buffer: wgpu::Buffer,
     inst_buffer: wgpu::Buffer,
 
-    // num_inds: u32,
     num_verts: usize,
 }
 
@@ -340,7 +336,6 @@ impl BoidManager {
             let mut vert_poses = Vec::new();
             let mut vert_txs = Vec::new();
             let mut verts = Vec::new();
-            // let mut inds = Vec::new();
 
             let mut highest_v: f32 = 0.0;
 
@@ -421,7 +416,6 @@ impl BoidManager {
 
             per_species.push(PerSpecies {
                 diffuse_bind_group,
-                // diffuse_texture,
 
                 verts_buffer,
                 inst_buffer,
