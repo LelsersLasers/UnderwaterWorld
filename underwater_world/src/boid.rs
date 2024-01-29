@@ -88,13 +88,13 @@ impl Boid {
 
         let sub_pos = sub.pos();
 
-        let sub_offset_z = self.position.z - sub_pos.z;
-        if sub_offset_z < -POS_RANGE_Z {
+        let sub_offset = sub_pos - self.position;
+        if sub_offset.z < -POS_RANGE_Z {
             let sub_force = self.steer_towards(-cgmath::Vector3::unit_z());
             acceleration += sub_force;
         }
 
-        let sub_offset_xy = cgmath::Vector2::new(sub_pos.x - self.position.x, sub_pos.y - self.position.y);
+        let sub_offset_xy = sub_offset.truncate();
         let sub_distance_xy = sub_offset_xy.magnitude();
         if sub_distance_xy > POS_RANGE_XY {
             let new_x = sub_offset_xy.x * WRAP_STRENGTH + self.position.x;
