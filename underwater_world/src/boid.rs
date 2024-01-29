@@ -144,44 +144,41 @@ impl Boid {
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
         acceleration += down_force;
 
-        let x_i32 = self.position.x.ceil() as i32;
-        let y_i32 = self.position.y.ceil() as i32;
-        let z_i32 = self.position.z.ceil() as i32;
+
+        // TODO: look for earlier break? (because know we only care about the closest wall)
 
         let mut closest_t = None;
         let mut closest_normal = None;
 
+        let world_start_x = ((self.position.x - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_start_y = ((self.position.y - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_start_z = ((self.position.z - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
 
-        // TODO: sort and check in a more efficient way
-        // Try to find a way to break earlier
-        // let orderings = -WALL_RANGE..WALL_RANGE;
-        // let mut orderings = orderings.into_iter().collect::<Vec<i32>>();
-        // orderings.sort_by_key(|&x| x.abs());
+        let world_end_x = ((self.position.x + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_end_y = ((self.position.y + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_end_z = ((self.position.z + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
 
-        for x in (x_i32 - WALL_RANGE)..(x_i32 + WALL_RANGE) {
-            for y in (y_i32 - WALL_RANGE)..(y_i32 + WALL_RANGE) {
-                for z in (z_i32 - WALL_RANGE)..(z_i32 + WALL_RANGE) {
-                    let dist_sq = util::dist_sq((x, y, z), (x_i32, y_i32, z_i32));
-                    if dist_sq > WALL_RANGE * WALL_RANGE {
-                        continue;
-                    }
+        for a in world_start_x..=world_end_x {
+            let local_x = self.position.x - a as f32 * chunk::CHUNK_SIZE as f32;
+            let local_percent_x = local_x / chunk::CHUNK_SIZE as f32;
 
-                    let world_x = (x as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
-                    let world_y = (y as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
-                    let world_z = (z as f32 / chunk::CHUNK_SIZE as f32).floor() as i32;
-                    let chunk_pos = (world_x, world_y, world_z);
+            for b in world_start_y..=world_end_y {
+                let local_y = self.position.y - b as f32 * chunk::CHUNK_SIZE as f32;
+                let local_percent_y = local_y / chunk::CHUNK_SIZE as f32;
+
+                for c in world_start_z..=world_end_z {
+                    let chunk_pos = (a, b, c);
 
                     let chunk = match world.get_chunk(chunk_pos) {
                         Some(chunk) => chunk,
                         None => continue,
                     };
 
-                    let chunk_x = x - world_x * chunk::CHUNK_SIZE as i32;
-                    let chunk_y = y - world_y * chunk::CHUNK_SIZE as i32;
-                    let chunk_z = z - world_z * chunk::CHUNK_SIZE as i32;
-                    let local_pos = (chunk_x, chunk_y, chunk_z);
+                    let local_z = self.position.z - c as f32 * chunk::CHUNK_SIZE as f32;
+                    let local_percent_z = local_z / chunk::CHUNK_SIZE as f32;
 
-                    let tris = chunk.tris_at(local_pos);
+                    let local_pos_percent = (local_percent_x, local_percent_y, local_percent_z);
+                    let tris = chunk.tris_around(local_pos_percent, WALL_RANGE);
 
                     for tri in tris {
                         let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
@@ -192,7 +189,7 @@ impl Boid {
                             }
                         }
                     }
-                }
+                }   
             }
         }
 
@@ -205,6 +202,7 @@ impl Boid {
             acceleration += force;
         }
 
+        
         self.velocity += acceleration * delta;
         let target_speed = self.velocity.magnitude().clamp(MIN_SPEED, MAX_SPEED);
         self.velocity = util::safe_normalize_to(self.velocity, target_speed);

@@ -1,5 +1,6 @@
 use cgmath::InnerSpace;
 
+#[derive(Clone, Copy)]
 pub struct Tri {
     pub verts: [cgmath::Vector3<f32>; 3],
     pub normal: cgmath::Vector3<f32>,
