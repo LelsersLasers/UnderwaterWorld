@@ -34,7 +34,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - Specicies
         - Fix red and blue `vt`s?
             - I think caused by the `.jpg` instead of `.png`?
-- Resizing
 - Better terrain generation
     - And coloring terrain
     - And more phsyically plausible

@@ -402,6 +402,8 @@ impl<'a> State<'a> {
             self.depth_texture = texture::Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
 
             self.brush.resize_view(self.config.width as f32, self.config.height as f32, &self.queue);
+
+            self.camera.aspect = self.config.width as f32 / self.config.height as f32;
         }
     }
 
