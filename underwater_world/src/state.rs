@@ -412,8 +412,24 @@ impl<'a> State<'a> {
     }
 
     pub fn update(&mut self) {
+        #[cfg(target_arch = "wasm32")]
+        {
+            // Manaully check resize on web
+            let js_window = web_sys::window().unwrap();
+            let width = js_window.inner_width().unwrap().as_f64().unwrap() as u32;
+            let height = js_window.inner_height().unwrap().as_f64().unwrap() as u32;
+
+
+            let new_size = winit::dpi::PhysicalSize::new(width, height);
+            if new_size != self.size {
+                self.resize(new_size);
+            }
+        }
+
+
         let delta = self.fps_counter.update();
         self.fpses.push(self.fps_counter.fps() as f32);
+        
 
         let old_len = self.fpses.len();
         let average_fps: f32 = self.fpses.iter().sum::<f32>() / old_len as f32;

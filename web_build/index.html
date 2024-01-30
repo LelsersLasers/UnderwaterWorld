@@ -45,13 +45,8 @@
             let max_width  = window.innerWidth;
             let max_height = window.innerHeight;
 
-            let width = Math.min(max_width, max_height * 16 / 9);
-            let height = Math.min(max_height, max_width * 9 / 16);
-
-            
-            canvas.style.width  = width  + "px";
-            canvas.style.height = height + "px";
-
+            canvas.style.width  = max_width  + "px";
+            canvas.style.height = max_height + "px";
         }
     </script>
 </body>
