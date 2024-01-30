@@ -71,3 +71,13 @@ pub fn dist_sq(pos1: (i32, i32, i32), pos2: (i32, i32, i32)) -> i32 {
     let dz = pos1.2 - pos2.2;
     dx * dx + dy * dy + dz * dz
 }
+
+pub fn in_frustum(pt: cgmath::Vector3<f32>, view_proj: cgmath::Matrix4<f32>) -> bool {
+    let corner = view_proj * pt.extend(1.0);
+    let corner = corner / corner.w;
+
+    corner.x.abs() <= 1.0
+        && corner.y.abs() <= 1.0
+        && corner.z >= 0.0
+        && corner.z <= 1.0
+}

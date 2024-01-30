@@ -4,6 +4,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
+- Sub reset: keeps x, y heading
 - Preformance
     - What are actually the slow parts?
     - Chunk ordering

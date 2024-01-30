@@ -1,8 +1,8 @@
-use crate::{chunk, sub, util};
+use crate::{camera, chunk, sub, util};
 use cgmath::InnerSpace;
 use std::collections::HashMap;
 
-const RECHECK_NEARBY_DIST: f32 = 4.0;
+const RECHECK_NEARBY_DIST: f32 = 2.0;
 
 pub const VIEW_DIST: i32 = 4;
 const GENERATION_DIST: i32 = 5;
@@ -11,6 +11,9 @@ const MAX_Z: i32 = 2;
 const MIN_Z: i32 = -2;
 
 const STOP_FULL_BUILD: i32 = GENERATION_DIST * GENERATION_DIST * GENERATION_DIST;
+
+const VIEW_FRUST_FOVY: f32 = 50.0;
+const GENERATE_FRUST_FOVY: f32 = 90.0;
 
 struct GeneratingChunk {
     chunk_pos: (i32, i32, i32),
@@ -54,12 +57,12 @@ impl World {
         self.chunks.get(&pos)
     }
 
-    pub fn update(&mut self, sub: &sub::Sub, perlin: &noise::Perlin, device: &wgpu::Device) {
+    pub fn update(&mut self, sub: &sub::Sub, camera: &camera::Camera, perlin: &noise::Perlin, device: &wgpu::Device) {
         self.remove_far_way(sub);
 
         let dist = (sub.pos() - self.last_sub_pos).magnitude();
         if dist > RECHECK_NEARBY_DIST {
-            self.update_nearby(sub);
+            self.update_nearby(sub, camera);
             self.last_sub_pos = sub.pos();
         }
 
@@ -103,12 +106,15 @@ impl World {
     }
 
 
-    pub fn update_nearby(&mut self, sub: &sub::Sub) {
+    pub fn update_nearby(&mut self, sub: &sub::Sub, camera: &camera::Camera) {
         self.chunks_to_render.clear();
         self.chunks_to_generate.clear();
 
         let sub_pos = sub.pos();
         let sub_chunk = sub.chunk();
+
+        let view_view_proj = camera.chunk_generation_frustum_matrix(VIEW_FRUST_FOVY);
+        let gen_view_proj = camera.chunk_generation_frustum_matrix(GENERATE_FRUST_FOVY);
 
         let max_view_dist = VIEW_DIST as f32 * chunk::CHUNK_SIZE as f32;
         let max_generation_dist = GENERATION_DIST as f32 * chunk::CHUNK_SIZE as f32;
@@ -123,6 +129,38 @@ impl World {
                 let chunk_y = sub_chunk.1 + y;
 
                 for chunk_z in start_z..=end_z {
+                    let corners = [
+                        (0.0, 0.0, 0.0),
+                        (1.0, 0.0, 0.0),
+                        (0.0, 1.0, 0.0),
+                        (1.0, 1.0, 0.0),
+                        (0.0, 0.0, 1.0),
+                        (1.0, 0.0, 1.0),
+                        (0.0, 1.0, 1.0),
+                        (1.0, 1.0, 1.0),
+                        (0.5, 0.5, 0.5), // center
+                    ];
+
+                    let mut view_in_frustum = false;
+                    let mut gen_in_frustum = 0;
+
+                    for corner in corners {
+                        let chunk_corner = cgmath::Vector3::new(
+                            (chunk_x as f32 + corner.0) * chunk::CHUNK_SIZE as f32,
+                            (chunk_y as f32 + corner.1) * chunk::CHUNK_SIZE as f32,
+                            (chunk_z as f32 + corner.2) * chunk::CHUNK_SIZE as f32,
+                        );
+
+                        if util::in_frustum(chunk_corner, gen_view_proj) {
+                            gen_in_frustum += 1;
+                            if util::in_frustum(chunk_corner, view_view_proj) {
+                                view_in_frustum = true;
+                            }
+                        }
+                    }
+
+                    let frustrum_percent = gen_in_frustum as f32 / (corners.len() as f32 + 1.0);
+
                     let chunk_center = cgmath::Vector3::new(
                         (chunk_x as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
                         (chunk_y as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
@@ -135,12 +173,13 @@ impl World {
 
                     match self.get_chunk(chunk_pos) {
                         Some(chunk) => {
-                            if dist < max_view_dist && chunk.not_blank() {
+                            if dist < max_view_dist && chunk.not_blank() && view_in_frustum {
                                 self.chunks_to_render.push(chunk_pos);
                             }
                         }
                         None => {
                             let sort = dist * dist + chunk_z as f32 * chunk::CHUNK_SIZE as f32;
+                            let sort = sort * (1.0 - frustrum_percent);
                             self.chunks_to_generate.push((chunk_pos, sort));
                         }
                     }

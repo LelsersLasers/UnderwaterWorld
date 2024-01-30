@@ -363,7 +363,7 @@ impl<'a> State<'a> {
         let sub = sub::Sub::new(&device, &perlin);
         
         let mut world = world::World::new();
-        world.update_nearby(&sub);
+        world.update_nearby(&sub, &camera);
 
         let boid_manager = boid::BoidManager::new(&sub, &perlin, &device, &queue, &texture_bind_group_layout);
         //--------------------------------------------------------------------//
@@ -444,7 +444,7 @@ impl<'a> State<'a> {
         self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);
 
-        self.world.update(&self.sub, &self.perlin, &self.device);
+        self.world.update(&self.sub, &self.camera, &self.perlin, &self.device);
 
         self.boid_manager.update(&self.queue, &self.perlin, &self.sub, &self.world, delta as f32);
 

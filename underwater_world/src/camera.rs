@@ -41,12 +41,17 @@ impl Camera {
     fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
         let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
         let proj = cgmath::perspective(cgmath::Deg(FOVY), self.aspect, Z_NEAR, Z_FAR);
-        proj * view
+        OPENGL_TO_WGPU_MATRIX * (proj * view)
+    }
+
+    pub fn chunk_generation_frustum_matrix(&self, fovy: f32) -> cgmath::Matrix4<f32> {
+        let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
+        let proj = cgmath::perspective(cgmath::Deg(fovy), self.aspect, Z_NEAR, Z_FAR);
+        OPENGL_TO_WGPU_MATRIX * (proj * view)
     }
 
     pub fn update_uniform(&mut self) {
-        self.uniform.view_proj =
-            (OPENGL_TO_WGPU_MATRIX * self.build_view_projection_matrix()).into();
+        self.uniform.view_proj = self.build_view_projection_matrix().into();
     }
 }
 
