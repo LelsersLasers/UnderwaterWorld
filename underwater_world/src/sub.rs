@@ -25,7 +25,7 @@ const SUB_MODEL_SCALE: f32 = 2.5;
 const PERLIN_FACTOR: f32 = 2.0;
 
 const CAMERA_FOLLOW_SPEED: f32 = 10.0;
-const START_Z_OFFSET: f32 = 1.0 * chunk::CHUNK_SIZE as f32;
+const START_Z_OFFSET: f32 = 0.75 * chunk::CHUNK_SIZE as f32;
 
 const MAX_Z: f32 = chunk::CHUNK_SIZE as f32 * 2.0;
 const MIN_Z: f32 = chunk::CHUNK_SIZE as f32 * -1.5;
