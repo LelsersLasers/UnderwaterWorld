@@ -419,7 +419,6 @@ impl<'a> State<'a> {
             let width = js_window.inner_width().unwrap().as_f64().unwrap() as u32;
             let height = js_window.inner_height().unwrap().as_f64().unwrap() as u32;
 
-
             let new_size = winit::dpi::PhysicalSize::new(width, height);
             if new_size != self.size {
                 self.resize(new_size);

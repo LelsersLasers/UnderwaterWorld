@@ -6,22 +6,23 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 - Preformance
     - What are actually the slow parts?
-    - Chunk generation
-        - Start generating them before they are in the view dist
-            - Still not fast enough at 60 FPS
-            - Sort of works when `GENERATION_DIST - VIEW_DIST >= 2`
-        - Build them across multiple frames
-        - "Downscale" chunks
-            - They are 16x16x16 in world space but only 12x12x12 in local space
-            - Shouldn't actually effect too much except for the boid wall avoidance
     - Chunk ordering
         - Either only do or do first the chunks that are in the right direction
             - No point in generating or rendering chunks that are behind you
             - Plus turn rate is fairly slow, so would have time to adjust?
+        - For every point on the edge of a chunk:
+            - If `camera.uniform.view_proj * chunk` is contained in the normalized device coordinates
+                - Then: give it priority
+    - If have "extra preformance"
+        - Bigger view distance (chunks + fog)
+        - Build chunks faster/slower?
+        - More rays for boid wall avoidence?
+        - More boids?
 - 3d fish/boids
     - Performance
         - 3d space partitioning
-            - Is this actually helpful/needed??
+            - Is this actually needed?
+            - Will my implementation be faster than just checking every boid?
         - The slowest part is actually the raycasting/wall collision checks
             - Might be a faster way to early exit
                 - Early dist check before intersection check?
@@ -44,11 +45,10 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Propeller bubbles?
 - Shader/lighting effects
     - Fog
-    - Lighting
+    - Lighting?
     - Darker the deeper
         - Scale clear color/fog color with sub depth
-        - Make sure the html background also updates
-    - If no wall collisions then void plane to make it obvious you are below
+    - Void plane to make it obvious you are looking below the terrain
 - Web build
 
 ## Controls
@@ -58,6 +58,25 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Speed up: space
 - Slow down: control
 - Reset submarine: R or enter
+
+## Notes
+
+- todo!()
+- Performance
+    - Chunk generation
+        - Split across multiple frames
+        - Downscaling
+        - Smart sorting
+        - Blank chunk (+ early generation check)
+- Marching Cubes
+- Fish
+    - 3d boids
+    - Wall avoidence
+    - Wrapping system
+- Terrain Generation/Perlin Noise
+    - 3d multi-octave perlin noise
+- Shader/Lighting Effects
+    - Fog, darker/deeper, fish swim animation
 
 ## Assets
 
