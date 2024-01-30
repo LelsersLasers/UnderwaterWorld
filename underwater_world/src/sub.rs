@@ -5,7 +5,7 @@ use noise::NoiseFn;
 use std::collections::HashMap;
 
 const MIN_SPEED: f32 = 0.5;
-const MAX_SPEED: f32 = 5.5;
+const MAX_SPEED: f32 = 5.0;
 const MIDDLE_SPEED: f32 = 4.0;
 const ACCELERATION: f32 = 5.0;
 
