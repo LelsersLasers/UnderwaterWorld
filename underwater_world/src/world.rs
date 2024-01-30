@@ -2,7 +2,8 @@ use crate::{camera, chunk, sub, util};
 use cgmath::InnerSpace;
 use std::collections::HashMap;
 
-const RECHECK_NEARBY_DIST: f32 = 2.0;
+const RECHECK_NEARBY_DIST: f32 = 4.0;
+const RECHECK_NEARBY_ANGLE: f32 = 0.33;
 
 pub const VIEW_DIST: i32 = 4;
 const GENERATION_DIST: i32 = 5;
@@ -35,9 +36,11 @@ pub struct World {
     chunks_to_render: Vec<(i32, i32, i32)>,
     chunks_to_generate: Vec<((i32, i32, i32), f32)>,
     generating_chunk: Option<GeneratingChunk>,
-    last_sub_pos: cgmath::Vector3<f32>,
     remove_state: RemoveState,
     should_full_build: bool,
+
+    last_sub_pos: cgmath::Vector3<f32>,
+    last_sub_bearing: cgmath::Vector3<f32>,
 }
 
 impl World {
@@ -47,9 +50,10 @@ impl World {
             chunks_to_render: Vec::new(),
             chunks_to_generate: Vec::new(),
             generating_chunk: None,
-            last_sub_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
             remove_state: RemoveState::new(),
             should_full_build: true,
+            last_sub_pos: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
+            last_sub_bearing: cgmath::Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
         }
     }
 
@@ -57,13 +61,16 @@ impl World {
         self.chunks.get(&pos)
     }
 
-    pub fn update(&mut self, sub: &sub::Sub, camera: &camera::Camera, perlin: &noise::Perlin, device: &wgpu::Device) {
+    pub fn update(&mut self, sub: &sub::Sub, camera: &camera::Camera, sub_reset: bool, perlin: &noise::Perlin, device: &wgpu::Device) {
         self.remove_far_way(sub);
 
         let dist = (sub.pos() - self.last_sub_pos).magnitude();
-        if dist > RECHECK_NEARBY_DIST {
+        let angle = sub.bearing().angle(self.last_sub_bearing);
+
+        if sub_reset || dist > RECHECK_NEARBY_DIST || angle > cgmath::Rad(RECHECK_NEARBY_ANGLE) {
             self.update_nearby(sub, camera);
             self.last_sub_pos = sub.pos();
+            self.last_sub_bearing = sub.bearing();
         }
 
         if self.should_full_build {

@@ -342,7 +342,7 @@ impl Sub {
 		}
     }
 
-	pub fn update(&mut self, queue: &wgpu::Queue, delta: f32) {
+	pub fn update(&mut self, queue: &wgpu::Queue, delta: f32) -> bool {
 		if self.keys.w_down { self.pitch_speed -= TURN_ACCELERATION * delta; }
 		if self.keys.s_down { self.pitch_speed += TURN_ACCELERATION * delta; }
 		if self.keys.a_down { self.yaw_speed   += TURN_ACCELERATION * delta; }
@@ -410,6 +410,8 @@ impl Sub {
         let prop_inst_mat = inst_mat * cgmath::Matrix4::from_angle_x(cgmath::Rad(self.prop_rot));
         let prop_inst = draw::Instance::new(prop_inst_mat);
         queue.write_buffer(&self.prop_inst_buffer, 0, bytemuck::cast_slice(&[prop_inst]));
+
+        self.keys.r_down
 	}
 
 	pub fn update_camera(&self, camera: &mut camera::Camera, delta: f32) {

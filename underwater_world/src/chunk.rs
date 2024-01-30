@@ -11,7 +11,7 @@ pub const ISO_LEVEL: f32 = -0.1;
 pub const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
 
 const X_GENERATION_STEP_ISO: i32 = 13;
-const X_GENERATION_STEP_MESH: i32 = 6;
+const X_GENERATION_STEP_MESH: i32 = 4;
 
 const ISO_LEN: usize = INTERNAL_SIZE + 1;
 

@@ -441,10 +441,10 @@ impl<'a> State<'a> {
         }
         self.fpses = new_fpses;
 
-        self.sub.update(&self.queue, delta as f32);
+        let reset = self.sub.update(&self.queue, delta as f32);
         self.sub.update_camera(&mut self.camera, delta as f32);
 
-        self.world.update(&self.sub, &self.camera, &self.perlin, &self.device);
+        self.world.update(&self.sub, &self.camera, reset, &self.perlin, &self.device);
 
         self.boid_manager.update(&self.queue, &self.perlin, &self.sub, &self.world, delta as f32);
 
