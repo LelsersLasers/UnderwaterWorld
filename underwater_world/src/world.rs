@@ -166,7 +166,7 @@ impl World {
                         }
                     }
 
-                    let frustrum_percent = gen_in_frustum as f32 / (corners.len() as f32 + 1.0);
+                    let frustrum_percent = gen_in_frustum as f32 / (corners.len() as f32 + 4.0);
 
                     let chunk_center = cgmath::Vector3::new(
                         (chunk_x as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
@@ -185,7 +185,8 @@ impl World {
                             }
                         }
                         None => {
-                            let sort = dist * dist + chunk_z as f32 * chunk::CHUNK_SIZE as f32;
+                            let sort = dist * dist;
+                            let sort = sort + chunk_z as f32 * chunk::CHUNK_SIZE as f32;
                             let sort = sort * (1.0 - frustrum_percent);
                             self.chunks_to_generate.push((chunk_pos, sort));
                         }

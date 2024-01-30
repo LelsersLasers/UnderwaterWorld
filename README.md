@@ -68,7 +68,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - Downscaling
         - Smart sorting
         - Blank chunk (+ early generation check)
-        - Frustrum culling
+        - View frustrum culling
+        - Generate frustrum prio
 - Marching Cubes
 - Fish
     - 3d boids
