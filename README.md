@@ -14,6 +14,10 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - "Downscale" chunks
             - They are 16x16x16 in world space but only 12x12x12 in local space
             - Shouldn't actually effect too much except for the boid wall avoidance
+    - Chunk ordering
+        - Either only do or do first the chunks that are in the right direction
+            - No point in generating or rendering chunks that are behind you
+            - Plus turn rate is fairly slow, so would have time to adjust?
 - 3d fish/boids
     - Performance
         - 3d space partitioning
