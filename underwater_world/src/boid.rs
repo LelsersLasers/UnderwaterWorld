@@ -12,8 +12,8 @@ const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 3;
 const WALL_FORCE_MULT: f32 = 10.0;
-const WALL_FORCE_PANIC_RANGE: f32 = 0.5;
-const WALL_FORCE_PANIC_MULT: f32 = 2.0;
+// const WALL_FORCE_PANIC_RANGE: f32 = 0.5;
+// const WALL_FORCE_PANIC_MULT: f32 = 2.0;
 
 const MAX_STEER_FORCE: f32 = 4.0;
 
@@ -123,7 +123,7 @@ impl Boid {
         acceleration
     }
 
-    fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
+    fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, avoidance_rays: &[cgmath::Vector3<f32>], delta: f32) {
         let mut acceleration = cgmath::Vector3::zero();
 
         if self.num_flockmates > 0 {
@@ -148,8 +148,10 @@ impl Boid {
         // TODO: look for earlier break? (because know we only care about the closest wall)
         // TODO: early dist check before intersection check?
 
-        let mut closest_t = None;
-        let mut closest_normal = None;
+        // let mut closest_t = None;
+        // let mut closest_normal = None;
+
+        let mut all_tris = Vec::new();
 
         let world_start_x = ((self.position.x - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
         let world_start_y = ((self.position.y - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
@@ -181,27 +183,48 @@ impl Boid {
                     let local_pos_percent = (local_percent_x, local_percent_y, local_percent_z);
                     let tris = chunk.tris_around(local_pos_percent, WALL_RANGE);
 
-                    for tri in tris {
-                        let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
-                        if let Some(t) = t {
-                            if closest_t.is_none() || t < closest_t.unwrap() {
-                                closest_t = Some(t);
-                                closest_normal = Some(tri.normal);
-                            }
-                        }
-                    }
+                    all_tris.extend(tris);
+
+                    // for tri in tris {
+                    //     let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
+                    //     if let Some(t) = t {
+                    //         // if closest_t.is_none() || t < closest_t.unwrap() {
+                    //         //     closest_t = Some(t);
+                    //         //     closest_normal = Some(tri.normal);
+                    //         // }
+                    //     }
+                    // }
                 }   
             }
         }
 
-        if let Some(normal) = closest_normal {
-            let t = closest_t.unwrap();
-            let mut force = self.steer_towards(normal) * WALL_FORCE_MULT;
-            if t < WALL_FORCE_PANIC_RANGE {
-                force *= WALL_FORCE_PANIC_MULT;
+        let heading_for_collision = all_tris.iter().any(|tri| {
+            let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
+            matches!(t, Some(_t))
+        });
+
+        if heading_for_collision {
+            'ray: for ray in avoidance_rays {
+
+                for tri in all_tris.iter() {
+                    let t = tri.intersects(self.position, *ray, WALL_RANGE as f32);
+                    if t.is_none() {
+                        let force = self.steer_towards(*ray) * WALL_FORCE_MULT;
+                        acceleration += force;
+                        break 'ray;
+                    }
+                }
             }
-            acceleration += force;
         }
+
+        // if let Some(normal) = closest_normal {
+        //     let t = closest_t.unwrap();
+        //     let mut force = self.steer_towards(normal) * WALL_FORCE_MULT;
+        //     if t < WALL_FORCE_PANIC_RANGE {
+        //         force *= WALL_FORCE_PANIC_MULT;
+        //     }
+        //     acceleration += force;
+        // }
 
         
         self.velocity += acceleration * delta;
@@ -276,6 +299,7 @@ struct PerSpecies {
 pub struct BoidManager {
     boids: Vec<Boid>,
     per_species: Vec<PerSpecies>,
+    avoidance_rays: Vec<cgmath::Vector3<f32>>,
 }
 impl BoidManager {
     pub fn new(
@@ -424,7 +448,34 @@ impl BoidManager {
             });
         }
 
-        Self { boids, per_species }
+        let directions = 10;
+        let mut avoidance_rays = Vec::with_capacity(directions);
+        let golden_ratio = (1.0 + 5.0_f32.sqrt()) / 2.0;
+        let angle_increment = std::f32::consts::PI * 2.0 / golden_ratio;
+
+        for i in 0..10 {
+            let t = (i as f32 + 0.5) / directions as f32;
+            let inclination = (1.0 - 2.0 * t).acos();
+            let azimuth = angle_increment * i as f32;
+
+            let x = inclination.sin() * azimuth.cos();
+            let y = inclination.sin() * azimuth.sin();
+            let z = inclination.cos();
+
+            avoidance_rays.push(cgmath::Vector3::new(x, y, z));
+
+            // float t = (float) i / numViewDirections;
+            // float inclination = Mathf.Acos (1 - 2 * t);
+            // float azimuth = angleIncrement * i;
+
+            // float x = Mathf.Sin (inclination) * Mathf.Cos (azimuth);
+            // float y = Mathf.Sin (inclination) * Mathf.Sin (azimuth);
+            // float z = Mathf.Cos (inclination);
+            // directions[i] = new Vector3 (x, y, z);
+        }
+
+
+        Self { boids, per_species, avoidance_rays }
     }
 
     pub fn update(&mut self, queue: &wgpu::Queue, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
@@ -474,7 +525,7 @@ impl BoidManager {
 
         let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
         for boid in self.boids.iter_mut() {
-            boid.update(perlin, sub, world, delta);
+            boid.update(perlin, sub, world, &self.avoidance_rays, delta);
             insts[boid.species as usize].push(boid.inst);
         }
 
