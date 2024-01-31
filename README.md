@@ -17,6 +17,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - Should avoidance_rays be the same for every boid?
                 - Should be random order per boid?
                 - Or in their creation, is it built in that the order is closer to `self.vel`?
+                - SORT THEM BASED ON ANGLE BETWEEN UNIT_X()
             - Use `rot_mat` or `self.rot_mat`?
         - Unity `Physics.SphereCast` like raycasts?
         - Get rid of normal field on triangle?
