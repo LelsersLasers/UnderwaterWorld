@@ -327,6 +327,8 @@ fn random_pos(rng: &mut ThreadRng, perlin: &noise::Perlin, sub: &sub::Sub) -> cg
 struct PerSpecies {
     diffuse_bind_group: wgpu::BindGroup,
 
+    insts: Vec<draw::InstanceTime>,
+
     verts_buffer: wgpu::Buffer,
     inst_buffer: wgpu::Buffer,
 
@@ -489,6 +491,8 @@ impl BoidManager {
             per_species.push(PerSpecies {
                 diffuse_bind_group,
 
+                insts,
+
                 verts_buffer,
                 inst_buffer,
 
@@ -617,7 +621,6 @@ impl BoidManager {
 
         self.spat_part.clear();
 
-        let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
         for (boid_i, boid) in self.boids.iter_mut().enumerate() {
             boid.update(perlin, sub, world, &self.avoidance_rays, delta);
 
@@ -627,11 +630,12 @@ impl BoidManager {
                 None => { self.spat_part.insert(spat_part_key, vec![boid_i]); },
             };
 
-            insts[boid.species as usize].push(boid.inst);
+            let species_i = boid_i % NUM_BOIDS;
+            self.per_species[boid.species as usize].insts[species_i] = boid.inst;
         }
 
-        for (i, species) in ALL_SPECIES.iter().enumerate() {
-            queue.write_buffer(&self.per_species[*species as usize].inst_buffer, 0, bytemuck::cast_slice(&insts[i]));
+        for per_species in self.per_species.iter() {
+            queue.write_buffer(&per_species.inst_buffer, 0, bytemuck::cast_slice(&per_species.insts));
         }
     }
 
