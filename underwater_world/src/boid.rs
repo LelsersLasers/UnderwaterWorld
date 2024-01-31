@@ -11,7 +11,8 @@ const PERCEPTION_RADIUS: f32 = 5.0;
 const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 3;
-const WALL_FORCE_MULT: f32 = 5.0;
+const WALL_FORCE_MULT: f32 = 1.0;
+const WALL_FORCE_DECAY: f32 = 32.0;
 const RAY_DIRECTION_COUNT: usize = 20;
 
 const MAX_STEER_FORCE: f32 = 4.0;
@@ -50,6 +51,7 @@ const SPECIES_TEXTURE_PATHS: [&str; SPECIES_COUNT] = [
 struct Boid {
     position: cgmath::Vector3<f32>,
     velocity: cgmath::Vector3<f32>,
+    wall_accel: cgmath::Vector3<f32>,
 
     sum_flock_heading: cgmath::Vector3<f32>,    // alignment
     sum_flock_center: cgmath::Vector3<f32>,     // cohesion
@@ -70,6 +72,7 @@ impl Boid {
         Self {
             position,
             velocity,
+            wall_accel: cgmath::Vector3::zero(),
 
             sum_flock_heading: cgmath::Vector3::zero(),
             sum_flock_center: cgmath::Vector3::zero(),
@@ -200,6 +203,7 @@ impl Boid {
             })
         });
 
+        let old_wall_accel = self.wall_accel;
         if heading_for_collision {
             'ray: for ray in avoidance_rays.iter() {
                 let ray = (self.rot_mat * ray.extend(1.0)).truncate();
@@ -215,13 +219,24 @@ impl Boid {
 
                 if safe_dir {
                     let force = self.steer_towards(ray) * WALL_FORCE_MULT;
-                    acceleration += force;
+                    // acceleration += force;
+                    // TODO: does this need a `* delta`
+                    self.wall_accel += force;
                     break 'ray;
                 }
             }
         }
 
-        
+        let wall_decay = WALL_FORCE_DECAY * delta;
+        if util::vec3_eq(old_wall_accel, self.wall_accel) {
+            if self.wall_accel.magnitude() < wall_decay {
+                self.wall_accel = cgmath::Vector3::zero();
+            } else {
+                self.wall_accel -= util::safe_normalize(self.wall_accel) * wall_decay;
+            }
+        }
+
+        acceleration += self.wall_accel;        
         self.velocity += acceleration * delta;
         let target_speed = self.velocity.magnitude().clamp(MIN_SPEED, MAX_SPEED);
         self.velocity = util::safe_normalize_to(self.velocity, target_speed);
