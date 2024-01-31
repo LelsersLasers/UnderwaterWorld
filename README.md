@@ -26,8 +26,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Early dist check before intersection check?
                 - Know we only want the closest t, look for that first?
         - Is it fine actually?
-- Organization
-    - Always `self.pos`, `self.vel`
 - Preformance
     - What are actually the slow parts?
     - If have "extra preformance"

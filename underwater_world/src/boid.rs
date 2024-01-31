@@ -49,8 +49,8 @@ const SPECIES_TEXTURE_PATHS: [&str; SPECIES_COUNT] = [
 ];
 
 struct Boid {
-    position: cgmath::Vector3<f32>,
-    velocity: cgmath::Vector3<f32>,
+    pos: cgmath::Vector3<f32>,
+    vel: cgmath::Vector3<f32>,
     wall_accel: cgmath::Vector3<f32>,
 
     sum_flock_heading: cgmath::Vector3<f32>,    // alignment
@@ -70,8 +70,8 @@ impl Boid {
     fn new(position: cgmath::Vector3<f32>, velocity: cgmath::Vector3<f32>, species: Species, time: f32) -> Self {
         let rot_mat = vel_to_rot_mat(velocity);
         Self {
-            position,
-            velocity,
+            pos: position,
+            vel: velocity,
             wall_accel: cgmath::Vector3::zero(),
 
             sum_flock_heading: cgmath::Vector3::zero(),
@@ -89,23 +89,23 @@ impl Boid {
     }
 
     fn wrap(&mut self, sub: &sub::Sub, perlin: &noise::Perlin) -> cgmath::Vector3<f32> {
-        let mut acceleration = cgmath::Vector3::zero();
+        let mut accel = cgmath::Vector3::zero();
 
         let sub_pos = sub.pos();
 
-        let sub_offset = sub_pos - self.position;
+        let sub_offset = sub_pos - self.pos;
         if sub_offset.z < -POS_RANGE_Z {
             let sub_force = self.steer_towards(-cgmath::Vector3::unit_z());
-            acceleration += sub_force;
+            accel += sub_force;
         }
 
         let sub_offset_xy = sub_offset.truncate();
         let sub_distance_xy = sub_offset_xy.magnitude();
         if sub_distance_xy > POS_RANGE_XY {
-            let new_x = sub_offset_xy.x * WRAP_STRENGTH + self.position.x;
-            let new_y = sub_offset_xy.y * WRAP_STRENGTH + self.position.y;
+            let new_x = sub_offset_xy.x * WRAP_STRENGTH + self.pos.x;
+            let new_y = sub_offset_xy.y * WRAP_STRENGTH + self.pos.y;
 
-            let mut new_z = self.position.z;
+            let mut new_z = self.pos.z;
             let mut new_z_in_wall = true;
             while new_z_in_wall {
                 let iso = perlin_util::iso_at(
@@ -122,49 +122,49 @@ impl Boid {
             }
 
             let new_pos = cgmath::Vector3::new(new_x, new_y, new_z);
-            self.position = new_pos;
+            self.pos = new_pos;
         }
 
-        acceleration
+        accel
     }
 
     fn update(&mut self, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, avoidance_rays: &[cgmath::Vector3<f32>], delta: f32) {
-        let mut acceleration = cgmath::Vector3::zero();
+        let mut accel = cgmath::Vector3::zero();
 
         if self.num_flockmates > 0 {
-            let center_offset = self.sum_flock_center / self.num_flockmates as f32 - self.position;
+            let center_offset = self.sum_flock_center / self.num_flockmates as f32 - self.pos;
 
             let separation_force = self.steer_towards(self.sum_flock_separation);
             let alignment_force = self.steer_towards(self.sum_flock_heading);
             let cohesion_force = self.steer_towards(center_offset);
 
-            acceleration += separation_force;
-            acceleration += alignment_force;
-            acceleration += cohesion_force;
+            accel += separation_force;
+            accel += alignment_force;
+            accel += cohesion_force;
         }
 
         let wrap_force = self.wrap(sub, perlin);
-        acceleration += wrap_force;
+        accel += wrap_force;
 
         let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
-        acceleration += down_force;
+        accel += down_force;
 
         let mut all_tris = Vec::new();
 
-        let world_start_x = ((self.position.x - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
-        let world_start_y = ((self.position.y - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
-        let world_start_z = ((self.position.z - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_start_x = ((self.pos.x - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_start_y = ((self.pos.y - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_start_z = ((self.pos.z - WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
 
-        let world_end_x = ((self.position.x + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
-        let world_end_y = ((self.position.y + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
-        let world_end_z = ((self.position.z + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_end_x = ((self.pos.x + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_end_y = ((self.pos.y + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
+        let world_end_z = ((self.pos.z + WALL_RANGE as f32) / chunk::CHUNK_SIZE as f32).floor() as i32;
 
         for a in world_start_x..=world_end_x {
-            let local_x = self.position.x - a as f32 * chunk::CHUNK_SIZE as f32;
+            let local_x = self.pos.x - a as f32 * chunk::CHUNK_SIZE as f32;
             let local_percent_x = local_x / chunk::CHUNK_SIZE as f32;
 
             for b in world_start_y..=world_end_y {
-                let local_y = self.position.y - b as f32 * chunk::CHUNK_SIZE as f32;
+                let local_y = self.pos.y - b as f32 * chunk::CHUNK_SIZE as f32;
                 let local_percent_y = local_y / chunk::CHUNK_SIZE as f32;
 
                 for c in world_start_z..=world_end_z {
@@ -175,7 +175,7 @@ impl Boid {
                         None => continue,
                     };
 
-                    let local_z = self.position.z - c as f32 * chunk::CHUNK_SIZE as f32;
+                    let local_z = self.pos.z - c as f32 * chunk::CHUNK_SIZE as f32;
                     let local_percent_z = local_z / chunk::CHUNK_SIZE as f32;
 
                     let local_pos_percent = (local_percent_x, local_percent_y, local_percent_z);
@@ -186,7 +186,7 @@ impl Boid {
             }
         }
 
-        let v_norm = util::safe_normalize(self.velocity);
+        let v_norm = util::safe_normalize(self.vel);
 
         let lower_ray = util::safe_normalize(cgmath::Vector3::new(1.0, 0.0, -0.5));
         let lower_ray = (self.rot_mat * lower_ray.extend(1.0)).truncate();
@@ -195,7 +195,7 @@ impl Boid {
 
         let heading_for_collision = all_tris.iter().any(|tri| {
             vs.iter().any(|v| {
-                let t = tri.intersects(self.position, *v, WALL_RANGE as f32);
+                let t = tri.intersects(self.pos, *v, WALL_RANGE as f32);
                 match t {
                     Some(t) => t < WALL_RANGE as f32,
                     None => false,
@@ -209,7 +209,7 @@ impl Boid {
                 let ray = (self.rot_mat * ray.extend(1.0)).truncate();
 
                 let safe_dir = all_tris.iter().all(|tri| {
-                    let t = tri.intersects(self.position, ray, WALL_RANGE as f32);
+                    let t = tri.intersects(self.pos, ray, WALL_RANGE as f32);
                     // match t {
                     //     Some(t) => t > WALL_RANGE as f32,
                     //     None => true,
@@ -235,22 +235,22 @@ impl Boid {
             }
         }
 
-        acceleration += self.wall_accel;        
-        self.velocity += acceleration * delta;
-        let target_speed = self.velocity.magnitude().clamp(MIN_SPEED, MAX_SPEED);
-        self.velocity = util::safe_normalize_to(self.velocity, target_speed);
+        accel += self.wall_accel;        
+        self.vel += accel * delta;
+        let target_speed = self.vel.magnitude().clamp(MIN_SPEED, MAX_SPEED);
+        self.vel = util::safe_normalize_to(self.vel, target_speed);
 
-        self.position += self.velocity * delta;
+        self.pos += self.vel * delta;
 
         let wiggle = target_speed / MIDDLE_SPEED;
         self.time += delta * wiggle;
 
-        self.rot_mat = vel_to_rot_mat(self.velocity);
-        self.inst = pos_rot_mat_to_inst(self.position, self.rot_mat, self.time);
+        self.rot_mat = vel_to_rot_mat(self.vel);
+        self.inst = pos_rot_mat_to_inst(self.pos, self.rot_mat, self.time);
     }
 
     fn steer_towards(&self, target: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
-        let v = util::safe_normalize_to(target, MAX_SPEED) - self.velocity;
+        let v = util::safe_normalize_to(target, MAX_SPEED) - self.vel;
         let v_mag = v.magnitude().min(MAX_STEER_FORCE);
         util::safe_normalize_to(v, v_mag)
     }
@@ -530,7 +530,7 @@ impl BoidManager {
                     continue;
                 }
 
-                let offset = self.boids[j].position - self.boids[i].position;
+                let offset = self.boids[j].pos - self.boids[i].pos;
                 let distance = offset.magnitude();
 
                 let i_species = self.boids[i].species;
@@ -540,10 +540,10 @@ impl BoidManager {
                     if i_species == j_species {
                         self.boids[i].num_flockmates += 1;
                         
-                        let boid_j_vel = self.boids[j].velocity;
+                        let boid_j_vel = self.boids[j].vel;
                         self.boids[i].sum_flock_heading += boid_j_vel;
     
-                        let boid_j_pos = self.boids[j].position;
+                        let boid_j_pos = self.boids[j].pos;
                         self.boids[i].sum_flock_center += boid_j_pos;
                     }
     
@@ -553,7 +553,7 @@ impl BoidManager {
                 }
             }
 
-            let offset = sub.pos() - self.boids[i].position;
+            let offset = sub.pos() - self.boids[i].pos;
             let distance = offset.magnitude();
 
             if distance < PERCEPTION_RADIUS {
