@@ -4,22 +4,16 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
-- Preformance
-    - What are actually the slow parts?
-    - If have "extra preformance"
-        - Bigger view distance (chunks + fog)
-        - Build chunks faster/slower?
-        - More rays for boid wall avoidence?
-        - More boids?
 - 3d fish/boids
     - Wall avoidence
         - Smoother wall avoidence
             - Don't reset acceration between frames?
                 - Or don't reset `wall_avoidence_acceleration` each frame?
                 - And have it decay to 0 over ~1 second?
-        - Better system
-            - Multiple rays?
-            - Perpendicular to the normal?
+        - If going to hit a wall, pick a direction based on rays of the wall instead of wall normal
+    - Wrapping
+        - Try to stay within the view/generation view frustrums?
+            - Would be able to lower the number of boids and have the same effect
     - Performance
         - 3d space partitioning
             - Is this actually needed?
@@ -29,9 +23,15 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Early dist check before intersection check?
                 - Know we only want the closest t, look for that first?
         - Is it fine actually?
-    - Specicies
-        - Fix red and blue `vt`s?
-            - I think caused by the `.jpg` instead of `.png`?
+- Preformance
+    - What are actually the slow parts?
+    - If have "extra preformance"
+        - Bigger view distance (chunks + fog)
+        - Build chunks faster/slower?
+        - Boids
+            - More boids
+            - More wall avoidence rays
+            - Higher wall avoidance range
 - Better terrain generation
     - And coloring terrain
     - And more phsyically plausible
