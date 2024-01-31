@@ -183,8 +183,10 @@ impl Boid {
             }
         }
 
+        let v_norm = util::safe_normalize(self.velocity);
+
         let heading_for_collision = all_tris.iter().any(|tri| {
-            let t = tri.intersects(self.position, self.velocity, WALL_RANGE as f32);
+            let t = tri.intersects(self.position, v_norm, WALL_RANGE as f32);
             match t {
                 Some(t) => t < WALL_RANGE as f32,
                 None => false,
@@ -192,17 +194,30 @@ impl Boid {
         });
 
 
+        let quat = cgmath::Quaternion::from_arc(
+            cgmath::Vector3::unit_x(),
+            v_norm,
+            None,
+        );
+        let rot_mat = cgmath::Matrix4::from(quat);
+
         if heading_for_collision {
             'ray: for ray in avoidance_rays.iter() {
-                let ray = (self.rot_mat * ray.extend(1.0)).truncate();
+                let ray = (rot_mat * ray.extend(1.0)).truncate();
 
-                for tri in all_tris.iter() {
+                let safe_dir = all_tris.iter().all(|tri| {
                     let t = tri.intersects(self.position, ray, WALL_RANGE as f32);
-                    if t.is_none() {
-                        let force = self.steer_towards(ray) * WALL_FORCE_MULT;
-                        acceleration += force;
-                        break 'ray;
-                    }
+                    // match t {
+                    //     Some(t) => t > WALL_RANGE as f32,
+                    //     None => true,
+                    // }
+                    t.is_none()
+                });
+
+                if safe_dir {
+                    let force = self.steer_towards(ray) * WALL_FORCE_MULT;
+                    acceleration += force;
+                    break 'ray;
                 }
             }
         }
@@ -231,12 +246,12 @@ impl Boid {
 fn vel_to_rot_mat(vel: cgmath::Vector3<f32>) -> cgmath::Matrix4<f32> {
     let xy_rot_quat = cgmath::Quaternion::from_arc(
         cgmath::Vector3::unit_x(),
-        cgmath::Vector3::new(vel.x, vel.y, 0.0),
+        util::safe_normalize(cgmath::Vector3::new(vel.x, vel.y, 0.0)),
         None,
     );
     let z_rot_quat = cgmath::Quaternion::from_arc(
-        cgmath::Vector3::new(vel.x, vel.y, 0.0),
-        cgmath::Vector3::new(vel.x, vel.y, vel.z),
+        util::safe_normalize(cgmath::Vector3::new(vel.x, vel.y, 0.0)),
+        util::safe_normalize(cgmath::Vector3::new(vel.x, vel.y, vel.z)),
         None,
     );
     cgmath::Matrix4::from(z_rot_quat) * cgmath::Matrix4::from(xy_rot_quat)
@@ -446,8 +461,10 @@ impl BoidManager {
             let x = inclination.sin() * azimuth.cos();
             let y = inclination.sin() * azimuth.sin();
             let z = inclination.cos();
-
-            avoidance_rays.push(cgmath::Vector3::new(x, y, z));
+            
+            let v = cgmath::Vector3::new(z, y, x);
+            let v_norm = util::safe_normalize(v);
+            avoidance_rays.push(v_norm);
         }
 
 

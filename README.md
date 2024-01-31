@@ -11,6 +11,13 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Or don't reset `wall_avoidence_acceleration` each frame?
                 - And have it decay to 0 over ~1 second?
         - If going to hit a wall, pick a direction based on rays of the wall instead of wall normal
+            - Pick:
+                - `WALL_FORCE_MULT`
+                - `RAY_DIRECTION_COUNT`
+            - Should avoidance_rays be the same for every boid?
+                - Should be random order per boid?
+                - Or in their creation, is it built in that the order is closer to `self.vel`?
+            - Use `rot_mat` or `self.rot_mat`?
     - Wrapping
         - Try to stay within the view/generation view frustrums?
             - Would be able to lower the number of boids and have the same effect
@@ -23,6 +30,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Early dist check before intersection check?
                 - Know we only want the closest t, look for that first?
         - Is it fine actually?
+- Organization
+    - Always `self.pos`, `self.vel`
 - Preformance
     - What are actually the slow parts?
     - If have "extra preformance"
