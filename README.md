@@ -19,7 +19,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Or in their creation, is it built in that the order is closer to `self.vel`?
             - Use `rot_mat` or `self.rot_mat`?
         - Unity `Physics.SphereCast` like raycasts?
-        - Get rid of normal field on triangle?
     - Wrapping
         - Try to stay within the view/generation view frustrums?
             - Would be able to lower the number of boids and have the same effect

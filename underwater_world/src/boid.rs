@@ -185,25 +185,24 @@ impl Boid {
 
         let v_norm = util::safe_normalize(self.velocity);
 
+        let lower_ray = util::safe_normalize(cgmath::Vector3::new(1.0, 0.0, -0.5));
+        let lower_ray = (self.rot_mat * lower_ray.extend(1.0)).truncate();
+
+        let vs = [lower_ray, v_norm];
+
         let heading_for_collision = all_tris.iter().any(|tri| {
-            let t = tri.intersects(self.position, v_norm, WALL_RANGE as f32);
-            match t {
-                Some(t) => t < WALL_RANGE as f32,
-                None => false,
-            }
+            vs.iter().any(|v| {
+                let t = tri.intersects(self.position, *v, WALL_RANGE as f32);
+                match t {
+                    Some(t) => t < WALL_RANGE as f32,
+                    None => false,
+                }
+            })
         });
-
-
-        let quat = cgmath::Quaternion::from_arc(
-            cgmath::Vector3::unit_x(),
-            v_norm,
-            None,
-        );
-        let rot_mat = cgmath::Matrix4::from(quat);
 
         if heading_for_collision {
             'ray: for ray in avoidance_rays.iter() {
-                let ray = (rot_mat * ray.extend(1.0)).truncate();
+                let ray = (self.rot_mat * ray.extend(1.0)).truncate();
 
                 let safe_dir = all_tris.iter().all(|tri| {
                     let t = tri.intersects(self.position, ray, WALL_RANGE as f32);
@@ -466,6 +465,33 @@ impl BoidManager {
             let v_norm = util::safe_normalize(v);
             avoidance_rays.push(v_norm);
         }
+
+
+        // let center = cgmath::Vector3::new(0.5, 0.5, 0.5);
+        // let corners = [
+        //     cgmath::Vector3::new(0.0, 0.0, 0.0),
+        //     cgmath::Vector3::new(1.0, 0.0, 0.0),
+        //     cgmath::Vector3::new(0.0, 1.0, 0.0),
+        //     cgmath::Vector3::new(1.0, 1.0, 0.0),
+        //     cgmath::Vector3::new(0.0, 0.0, 1.0),
+        //     cgmath::Vector3::new(1.0, 0.0, 1.0),
+        //     cgmath::Vector3::new(0.0, 1.0, 1.0),
+        //     cgmath::Vector3::new(1.0, 1.0, 1.0),
+        // ];
+        // let corner_vectors = corners.iter().map(|corner| {
+        //     let offset = corner - center;
+        //     util::safe_normalize(offset)
+        // }).collect::<Vec<_>>();
+        // let face_vectors = [
+        //     cgmath::Vector3::new(0.0, 0.0, -1.0),
+        //     cgmath::Vector3::new(0.0, 0.0, 1.0),
+        //     cgmath::Vector3::new(0.0, -1.0, 0.0),
+        //     cgmath::Vector3::new(0.0, 1.0, 0.0),
+        //     cgmath::Vector3::new(-1.0, 0.0, 0.0),
+        //     cgmath::Vector3::new(1.0, 0.0, 0.0),
+        // ];
+        // let mut avoidance_rays = corner_vectors.clone();
+        // avoidance_rays.extend(face_vectors);
 
         avoidance_rays.sort_unstable_by(|ray1, ray2| {
             let angle1 = cgmath::Vector3::unit_x().angle(*ray1);
