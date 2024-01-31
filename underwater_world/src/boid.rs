@@ -192,10 +192,10 @@ impl Boid {
         });
 
 
-        let rays = avoidance_rays.iter().map(|ray| (self.rot_mat * ray.extend(1.0)).truncate()).collect::<Vec<_>>();
-
         if heading_for_collision {
-            'ray: for ray in rays {
+            'ray: for ray in avoidance_rays.iter() {
+                let ray = (self.rot_mat * ray.extend(1.0)).truncate();
+
                 for tri in all_tris.iter() {
                     let t = tri.intersects(self.position, ray, WALL_RANGE as f32);
                     if t.is_none() {
