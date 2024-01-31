@@ -1,5 +1,8 @@
 use cgmath::InnerSpace;
 
+const EPSILON: f32 = 1e-5;
+
+
 #[derive(Clone, Copy)]
 pub struct Tri {
     pub verts: [cgmath::Vector3<f32>; 3],
@@ -18,11 +21,10 @@ impl Tri {
     }
     pub fn intersects(&self, pos_other: cgmath::Vector3<f32>, dir: cgmath::Vector3<f32>, range: f32) -> Option<f32> {
         // https://chat.openai.com/share/e19d45df-2288-4889-8ece-5d0c98d67701
-        let epsilon = 1e-6;
 
         // Check if the ray is parallel to the triangle
         let dot_normal_dir = self.normal.dot(dir);
-        if dot_normal_dir.abs() < epsilon {
+        if dot_normal_dir.abs() < EPSILON {
             return None;
         }
 
@@ -80,4 +82,10 @@ pub fn in_frustum(pt: cgmath::Vector3<f32>, view_proj: cgmath::Matrix4<f32>) -> 
         && corner.y.abs() <= 1.0
         && corner.z >= 0.0
         && corner.z <= 1.0
+}
+
+pub fn vec3_eq(a: cgmath::Vector3<f32>, b: cgmath::Vector3<f32>) -> bool {
+    (a.x - b.x).abs() < EPSILON
+        && (a.y - b.y).abs() < EPSILON
+        && (a.z - b.z).abs() < EPSILON
 }
