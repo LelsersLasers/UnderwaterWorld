@@ -12,7 +12,7 @@ const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 3;
 const WALL_FORCE_MULT: f32 = 5.0;
-const RAY_DIRECTION_COUNT: usize = 12;
+const RAY_DIRECTION_COUNT: usize = 20;
 
 const MAX_STEER_FORCE: f32 = 4.0;
 
@@ -467,6 +467,11 @@ impl BoidManager {
             avoidance_rays.push(v_norm);
         }
 
+        avoidance_rays.sort_unstable_by(|ray1, ray2| {
+            let angle1 = cgmath::Vector3::unit_x().angle(*ray1);
+            let angle2 = cgmath::Vector3::unit_x().angle(*ray2);
+            angle1.partial_cmp(&angle2).unwrap()
+        });
 
         Self { boids, per_species, avoidance_rays }
     }
