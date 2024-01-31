@@ -6,19 +6,14 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 - 3d fish/boids
     - Wall avoidence
-        - Smoother wall avoidence
-            - Don't reset acceration between frames?
-                - Or don't reset `wall_avoidence_acceleration` each frame?
-                - And have it decay to 0 over ~1 second?
-        - If going to hit a wall, pick a direction based on rays of the wall instead of wall normal
-            - Pick:
+        - Pick:
+            - `RAY_DIRECTION_COUNT`
+        - It is missing a `* delta`?
                 - `WALL_FORCE_MULT`
-                - `RAY_DIRECTION_COUNT`
-            - Should avoidance_rays be the same for every boid?
-                - Should be random order per boid?
-                - Or in their creation, is it built in that the order is closer to `self.vel`?
-            - Use `rot_mat` or `self.rot_mat`?
+        - Should avoidance_rays be the same for every boid?
         - Unity `Physics.SphereCast` like raycasts?
+        - On intersect checks, should do match and a `t` vs `WALL_RANGE as f32`?
+            - Or just `t.is_some()`/`t.is_none()`?
     - Wrapping
         - Try to stay within the view/generation view frustrums?
             - Would be able to lower the number of boids and have the same effect

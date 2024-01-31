@@ -219,7 +219,6 @@ impl Boid {
 
                 if safe_dir {
                     let force = self.steer_towards(ray) * WALL_FORCE_MULT;
-                    // acceleration += force;
                     // TODO: does this need a `* delta`
                     self.wall_accel += force;
                     break 'ray;
