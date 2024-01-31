@@ -68,6 +68,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Fish
     - 3d boids
     - Wall avoidence
+        - 3d points on sphere
+        - Raycasting
     - Wrapping system
 - Terrain Generation/Perlin Noise
     - 3d multi-octave perlin noise
