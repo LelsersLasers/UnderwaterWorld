@@ -24,7 +24,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Know we only want the closest t, look for that first?
 - Preformance
     - What are actually the slow parts?
-    - Obj.rs files functions that return the strings instead of global variables
     - If have "extra preformance"
         - Bigger view distance (chunks + fog)
         - Build chunks faster/slower?

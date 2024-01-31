@@ -151,7 +151,7 @@ impl Sub {
         //--------------------------------------------------------------------//
         let mut mats = HashMap::new();
 
-        for line in sub_obj::SUB_MAT.lines() {
+        for line in sub_obj::sub_mat().lines() {
             let mut split = line.split_whitespace();
 
             let first = split.next();
@@ -178,7 +178,7 @@ impl Sub {
 
         let mut highest_v: f32 = 0.0;
 
-        for line in sub_obj::SUB_OBJ.lines() {
+        for line in sub_obj::sub_obj().lines() {
             let mut split = line.split_whitespace();
             let first = split.next();
             match first {

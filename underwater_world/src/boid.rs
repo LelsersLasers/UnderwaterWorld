@@ -414,9 +414,9 @@ impl BoidManager {
             let mut highest_v: f32 = 0.0;
 
             let obj = match species {
-                Species::Red   => boid_obj::RED_OBJ,
-                Species::Green => boid_obj::GREEN_OBJ,
-                Species::Blue  => boid_obj::BLUE_OBJ,
+                Species::Red   => boid_obj::red_obj(),
+                Species::Green => boid_obj::green_obj(),
+                Species::Blue  => boid_obj::blue_obj(),
             };
 
             for line in obj.lines() {
