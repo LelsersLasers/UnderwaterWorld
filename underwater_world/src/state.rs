@@ -357,7 +357,6 @@ impl<'a> State<'a> {
 
         //--------------------------------------------------------------------//
         let seed = (instant::now().round() % u32::MAX as f64) as u32;
-        println!("Seed: {}", seed);
         let perlin = noise::Perlin::new(seed);
 
         let sub = sub::Sub::new(&device, &perlin);
