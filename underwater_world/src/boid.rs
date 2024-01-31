@@ -12,7 +12,7 @@ const AVOIDANCE_RADIUS: f32 = 2.0;
 
 const WALL_RANGE: i32 = 3;
 const WALL_FORCE_MULT: f32 = 1.0;
-const WALL_FORCE_DECAY: f32 = 32.0;
+const WALL_FORCE_DECAY: f32 = 100.0;
 const RAY_DIRECTION_COUNT: usize = 20;
 
 const MAX_STEER_FORCE: f32 = 4.0;
