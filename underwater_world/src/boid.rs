@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{boid_obj, chunk, draw, perlin_util, sub, texture, util, world};
 use cgmath::{InnerSpace, Zero, num_traits::Pow};
 use rand::prelude::*;
@@ -23,15 +25,15 @@ const DOWN_STEER_MULT: f32 = -0.1;
 const NUM_BOIDS: usize = 100;
 
 const WRAP_STRENGTH: f32 = 1.975;
-
-const FISH_SCALE: f32 = 0.75;
-
 const ISO_PADDING: f32 = 0.075;
-
+const NEW_Z_STEP: f32 = 2.0;
 const POS_RANGE_XY: f32 = 46.0;
 const POS_RANGE_Z: f32 = 16.0;
 
-const NEW_Z_STEP: f32 = 2.0;
+const SPAT_PART_SIZE: f32 = PERCEPTION_RADIUS;
+
+const FISH_SCALE: f32 = 0.75;
+
 
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -57,6 +59,10 @@ struct Boid {
     sum_flock_center: cgmath::Vector3<f32>,     // cohesion
     sum_flock_separation: cgmath::Vector3<f32>, // separation
 
+    spat_part_key: (i32, i32, i32),
+    spat_part_key_start: (i32, i32, i32),
+    spat_part_key_end: (i32, i32, i32),
+
     num_flockmates: usize,
 
     species: Species,
@@ -69,6 +75,7 @@ struct Boid {
 impl Boid {
     fn new(position: cgmath::Vector3<f32>, velocity: cgmath::Vector3<f32>, species: Species, time: f32) -> Self {
         let rot_mat = vel_to_rot_mat(velocity);
+        let spat_part_key = pos_to_spat_part_key(position);
         Self {
             pos: position,
             vel: velocity,
@@ -77,6 +84,10 @@ impl Boid {
             sum_flock_heading: cgmath::Vector3::zero(),
             sum_flock_center: cgmath::Vector3::zero(),
             sum_flock_separation: cgmath::Vector3::zero(),
+
+            spat_part_key,
+            spat_part_key_start: spat_part_key,
+            spat_part_key_end: spat_part_key,
 
             num_flockmates: 0,
 
@@ -247,6 +258,11 @@ impl Boid {
 
         self.rot_mat = vel_to_rot_mat(self.vel);
         self.inst = pos_rot_mat_to_inst(self.pos, self.rot_mat, self.time);
+
+        self.spat_part_key = pos_to_spat_part_key(self.pos);
+        let spat_part_size_vec = cgmath::Vector3::new(SPAT_PART_SIZE, SPAT_PART_SIZE, SPAT_PART_SIZE);
+        self.spat_part_key_start = pos_to_spat_part_key(self.pos - spat_part_size_vec);
+        self.spat_part_key_end = pos_to_spat_part_key(self.pos + spat_part_size_vec);
     }
 
     fn steer_towards(&self, target: cgmath::Vector3<f32>) -> cgmath::Vector3<f32> {
@@ -273,6 +289,13 @@ fn vel_to_rot_mat(vel: cgmath::Vector3<f32>) -> cgmath::Matrix4<f32> {
 fn pos_rot_mat_to_inst(pos: cgmath::Vector3<f32>, rot_mat: cgmath::Matrix4<f32>, time: f32) -> draw::InstanceTime {
     let mat = cgmath::Matrix4::from_translation(pos) * rot_mat;
     draw::InstanceTime::new(mat, time)
+}
+
+fn pos_to_spat_part_key(pos:cgmath::Vector3<f32>) -> (i32, i32, i32) {
+    let x = (pos.x / SPAT_PART_SIZE).floor() as i32;
+    let y = (pos.y / SPAT_PART_SIZE).floor() as i32;
+    let z = (pos.z / SPAT_PART_SIZE).floor() as i32;
+    (x, y, z)
 }
 
 fn random_pos(rng: &mut ThreadRng, perlin: &noise::Perlin, sub: &sub::Sub) -> cgmath::Vector3<f32> {
@@ -312,6 +335,7 @@ struct PerSpecies {
 
 pub struct BoidManager {
     boids: Vec<Boid>,
+    spat_part: HashMap<(i32, i32, i32), Vec<usize>>,
     per_species: Vec<PerSpecies>,
     avoidance_rays: Vec<cgmath::Vector3<f32>>,
 }
@@ -325,11 +349,14 @@ impl BoidManager {
     ) -> Self {
         let mut rng = rand::thread_rng();
         let mut boids = Vec::with_capacity(NUM_BOIDS * SPECIES_COUNT);
+        let mut spat_part: HashMap<(i32, i32, i32), Vec<usize>> = HashMap::new();
         let mut per_species = Vec::new();
 
         let diffuse_bytes_red = include_bytes!("red.jpg");
         let diffuse_bytes_green = include_bytes!("green.png");
         let diffuse_bytes_blue = include_bytes!("blue.jpg");
+
+        let mut boid_i = 0;
 
         for species in &ALL_SPECIES {
             let mut insts = Vec::with_capacity(NUM_BOIDS);
@@ -344,8 +371,15 @@ impl BoidManager {
                 let time = rng.gen_range(0.0..std::f32::consts::PI * 2.0);
                 let boid = Boid::new(position, velocity, *species, time);
 
+                let spat_part_key = boid.spat_part_key;
+                match spat_part.get_mut(&spat_part_key) {
+                    Some(boid_is) => boid_is.push(boid_i),
+                    None => { spat_part.insert(spat_part_key, vec![boid_i]); },
+                };
+
                 insts.push(boid.inst);
                 boids.push(boid);
+                boid_i += 1;
             }
 
             let diffuse_texture = match species {
@@ -513,19 +547,39 @@ impl BoidManager {
             angle1.partial_cmp(&angle2).unwrap()
         });
 
-        Self { boids, per_species, avoidance_rays }
+        Self { boids, spat_part, per_species, avoidance_rays }
+    }
+
+    fn boids_near(&self, boid_i: usize) -> Vec<usize> {
+        let boid = &self.boids[boid_i];
+        let mut boids_near = Vec::new();
+
+        let start = boid.spat_part_key_start;
+        let end = boid.spat_part_key_end;
+
+        for x in start.0..=end.0 {
+            for y in start.1..=end.1 {
+                for z in start.2..=end.2 {
+                    let key = (x, y, z);
+                    if let Some(boid_is) = self.spat_part.get(&key) {
+                        boids_near.extend(boid_is);
+                    }
+                }
+            }
+        }
+
+        boids_near
     }
 
     pub fn update(&mut self, queue: &wgpu::Queue, perlin: &noise::Perlin, sub: &sub::Sub, world: &world::World, delta: f32) {
-        for boid in self.boids.iter_mut() {
-            boid.num_flockmates = 0;
-            boid.sum_flock_heading = cgmath::Vector3::zero();
-            boid.sum_flock_center = cgmath::Vector3::zero();
-            boid.sum_flock_separation = cgmath::Vector3::zero();
-        }
-
         for i in 0..self.boids.len() {
-            for j in 0..self.boids.len() {
+            self.boids[i].num_flockmates = 0;
+            self.boids[i].sum_flock_heading = cgmath::Vector3::zero();
+            self.boids[i].sum_flock_center = cgmath::Vector3::zero();
+            self.boids[i].sum_flock_separation = cgmath::Vector3::zero();
+
+            let nearby = self.boids_near(i);
+            for j in nearby {
                 if i == j {
                     continue;
                 }
@@ -561,9 +615,18 @@ impl BoidManager {
             }
         }
 
+        self.spat_part.clear();
+
         let mut insts = [ Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS), Vec::with_capacity(NUM_BOIDS) ];
-        for boid in self.boids.iter_mut() {
+        for (boid_i, boid) in self.boids.iter_mut().enumerate() {
             boid.update(perlin, sub, world, &self.avoidance_rays, delta);
+
+            let spat_part_key = boid.spat_part_key;
+            match self.spat_part.get_mut(&spat_part_key) {
+                Some(boid_is) => boid_is.push(boid_i),
+                None => { self.spat_part.insert(spat_part_key, vec![boid_i]); },
+            };
+
             insts[boid.species as usize].push(boid.inst);
         }
 

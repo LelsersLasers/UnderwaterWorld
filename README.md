@@ -6,26 +6,22 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 - 3d fish/boids
     - Wall avoidence
+        - Unity `Physics.SphereCast` like raycasts?
         - Pick:
             - `RAY_DIRECTION_COUNT`
         - It is missing a `* delta`?
-                - `WALL_FORCE_MULT`
+            - `WALL_FORCE_MULT`
         - Should avoidance_rays be the same for every boid?
-        - Unity `Physics.SphereCast` like raycasts?
         - On intersect checks, should do match and a `t` vs `WALL_RANGE as f32`?
             - Or just `t.is_some()`/`t.is_none()`?
     - Wrapping
         - Try to stay within the view/generation view frustrums?
             - Would be able to lower the number of boids and have the same effect
     - Performance
-        - 3d space partitioning
-            - Is this actually needed?
-            - Will my implementation be faster than just checking every boid?
         - The slowest part is actually the raycasting/wall collision checks
             - Might be a faster way to early exit
                 - Early dist check before intersection check?
                 - Know we only want the closest t, look for that first?
-        - Is it fine actually?
 - Preformance
     - What are actually the slow parts?
     - If have "extra preformance"
