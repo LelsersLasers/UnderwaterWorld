@@ -9,8 +9,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - Unity `Physics.SphereCast` like raycasts?
         - Pick:
             - `RAY_DIRECTION_COUNT`
-        - It is missing a `* delta`?
-            - `WALL_FORCE_MULT`
         - Should avoidance_rays be the same for every boid?
         - On intersect checks, should do match and a `t` vs `WALL_RANGE as f32`?
             - Or just `t.is_some()`/`t.is_none()`?
