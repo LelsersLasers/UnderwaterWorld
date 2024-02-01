@@ -30,11 +30,40 @@ impl RemoveState {
     }
 }
 
+struct GenPrio {
+    dist: f32,
+    z: f32,
+    in_view: bool,
+    in_gen: bool,
+}
+impl GenPrio {
+    fn compare(&self, other: &GenPrio) -> std::cmp::Ordering {
+        // in view -> in gen -> dist + z
+
+        if self.in_view && !other.in_view {
+            return std::cmp::Ordering::Less;
+        } else if !self.in_view && other.in_view {
+            return std::cmp::Ordering::Greater;
+        }
+
+        if self.in_gen && !other.in_gen {
+            return std::cmp::Ordering::Less;
+        } else if !self.in_gen && other.in_gen {
+            return std::cmp::Ordering::Greater;
+        }
+
+        let self_sort = self.dist * self.dist + self.z;
+        let other_sort = other.dist * other.dist + other.z;
+
+        self_sort.partial_cmp(&other_sort).unwrap()
+    }
+}
+
 
 pub struct World {
     chunks: HashMap<(i32, i32, i32), chunk::Chunk>,
     chunks_to_render: Vec<(i32, i32, i32)>,
-    chunks_to_generate: Vec<((i32, i32, i32), f32)>,
+    chunks_to_generate: Vec<((i32, i32, i32), GenPrio)>,
     generating_chunk: Option<GeneratingChunk>,
     remove_state: RemoveState,
     should_full_build: bool,
@@ -145,11 +174,10 @@ impl World {
                         (1.0, 0.0, 1.0),
                         (0.0, 1.0, 1.0),
                         (1.0, 1.0, 1.0),
-                        (0.5, 0.5, 0.5), // center
                     ];
 
-                    let mut view_in_frustum = false;
-                    let mut gen_in_frustum = 0;
+                    let mut in_view = false;
+                    let mut in_gen = false;
 
                     for corner in corners {
                         let chunk_corner = cgmath::Vector3::new(
@@ -159,14 +187,13 @@ impl World {
                         );
 
                         if util::in_frustum(chunk_corner, gen_view_proj) {
-                            gen_in_frustum += 1;
+                            in_gen = true;
                             if util::in_frustum(chunk_corner, view_view_proj) {
-                                view_in_frustum = true;
+                                in_view = true;
+                                break;
                             }
                         }
                     }
-
-                    let frustrum_percent = gen_in_frustum as f32 / (corners.len() as f32 + 4.0);
 
                     let chunk_center = cgmath::Vector3::new(
                         (chunk_x as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
@@ -180,23 +207,29 @@ impl World {
 
                     match self.get_chunk(chunk_pos) {
                         Some(chunk) => {
-                            if dist < max_view_dist && chunk.not_blank() && view_in_frustum {
+                            if dist < max_view_dist && chunk.not_blank() && in_view {
                                 self.chunks_to_render.push(chunk_pos);
                             }
                         }
                         None => {
-                            let sort = dist * dist;
-                            let sort = sort + chunk_z as f32 * chunk::CHUNK_SIZE as f32;
-                            let sort = sort * (1.0 - frustrum_percent);
-                            self.chunks_to_generate.push((chunk_pos, sort));
+                            // let sort = dist * dist;
+                            // let sort = sort + chunk_z as f32 * chunk::CHUNK_SIZE as f32;
+                            // let sort = sort * (1.0 - frustrum_percent);
+                            let gen_prio = GenPrio {
+                                dist,
+                                z: chunk_z as f32 * chunk::CHUNK_SIZE as f32,
+                                in_view,
+                                in_gen,
+                            };
+                            self.chunks_to_generate.push((chunk_pos, gen_prio));
                         }
                     }
                 }
             }
         }
 
-        self.chunks_to_generate.sort_unstable_by(|(_pos1, dist1), (_pos2, dist2)| {
-            dist2.partial_cmp(dist1).unwrap()
+        self.chunks_to_generate.sort_unstable_by(|(_pos1, gen_prio1), (_pos2, gen_prio2)| {
+            gen_prio2.compare(gen_prio1)
         });
     }
 
