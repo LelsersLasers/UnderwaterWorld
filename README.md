@@ -24,6 +24,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Know we only want the closest t, look for that first?
 - Preformance
     - What are actually the slow parts?
+    - Super prio on chunks that are in the view frustrum?
     - If have "extra preformance"
         - Bigger view distance (chunks + fog)
         - Build chunks faster/slower?
