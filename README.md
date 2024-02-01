@@ -26,7 +26,9 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - What are actually the slow parts?
     - Super prio on chunks that are in the view frustrum?
         - Set up a prio struct to use for the generation sort
-            - dist, z, gen frust count, view frust count
+            - view frust count -> gen frust count -> dist with z as prio
+            - Could do a `any()` check for the view frust
+                - Maybe also for the gen frust?
     - If have "extra preformance"
         - Bigger view distance (chunks + fog)
         - Build chunks faster/slower?
@@ -65,7 +67,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
         - Blank chunk (+ early generation check)
         - View frustrum culling
         - Chunk generation order
-            - Generate frustrum prio
         - Spatial paritioning
 - Marching Cubes
 - Fish
