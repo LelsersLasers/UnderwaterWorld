@@ -328,8 +328,7 @@ impl<'a> State<'a> {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
-                // cull_mode: Some(wgpu::Face::Back),
-                cull_mode: None,
+                cull_mode: Some(wgpu::Face::Back),
                 polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
                 conservative: false,
@@ -581,12 +580,10 @@ impl<'a> State<'a> {
             let _ = self.brush.queue(&self.device, &self.queue, vec![&selection]);
 
             self.brush.draw(&mut brush_render_pass);
-            // self.brush.draw(&mut render_pass);
         }
         //--------------------------------------------------------------------//
 
         //--------------------------------------------------------------------//
-        // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
         //--------------------------------------------------------------------//
