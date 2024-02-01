@@ -1,4 +1,4 @@
-use crate::{boid, camera, consts, draw, texture, timer, sub, world};
+use crate::{boid, camera, consts, draw, sub, texture, timer, util, world};
 use wgpu::util::DeviceExt;
 
 const TEXT_SIZE: f32 = 20.0 / 600.0;
@@ -152,7 +152,7 @@ impl<'a> State<'a> {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -446,6 +446,11 @@ impl<'a> State<'a> {
 
         self.boid_manager.update(&self.queue, &self.perlin, &self.sub, &self.world, delta as f32);
 
+        let t = self.sub.t();
+        let clear_color_rgb = util::mix_color(consts::LIGHT_COLOR, consts::DARK_COLOR, t);
+        let clear_color = util::color_convert_srgb_to_linear(clear_color_rgb);
+        self.camera.set_fog_color(clear_color);
+
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));
     }
 
@@ -470,7 +475,7 @@ impl<'a> State<'a> {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(consts::CLEAR_COLOR),
+                        load: wgpu::LoadOp::Clear(self.camera.fog_color_as_color()),
                         store: wgpu::StoreOp::Store,
                     },
                 })],

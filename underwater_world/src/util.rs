@@ -89,3 +89,29 @@ pub fn vec3_eq(a: cgmath::Vector3<f32>, b: cgmath::Vector3<f32>) -> bool {
         && (a.y - b.y).abs() < EPSILON
         && (a.z - b.z).abs() < EPSILON
 }
+
+pub fn create_mix_ratio(min: f32, max: f32, x: f32) -> f32 {
+    (x - min) / (max - min)
+}
+
+pub fn mix_color(light: [f32; 3], dark: [f32; 3], ratio: f32) -> [f32; 3] {
+    [
+        light[0] * ratio + dark[0] * (1.0 - ratio),
+        light[1] * ratio + dark[1] * (1.0 - ratio),
+        light[2] * ratio + dark[2] * (1.0 - ratio),
+    ]
+}
+
+pub fn color_convert_srgb_to_linear(color: [f32; 3]) -> [f32; 3] {
+    [
+        ((color[0] / 255.0 + 0.055) / 1.055).powf(2.4),
+        ((color[1] / 255.0 + 0.055) / 1.055).powf(2.4),
+        ((color[2] / 255.0 + 0.055) / 1.055).powf(2.4),
+    ]
+}
+
+// // srgb_color = ((rgb_color / 255 + 0.055) / 1.055) ^ 2.4
+// fn color_convert_srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
+//     let linear = (srgb + 0.055) / 1.055;
+//     return pow(linear, vec3<f32>(2.4, 2.4, 2.4));
+// }

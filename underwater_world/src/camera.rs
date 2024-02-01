@@ -38,6 +38,20 @@ impl Camera {
         &self.uniform
     }
 
+    pub fn set_fog_color(&mut self, color: [f32; 3]) {
+        self.uniform.fog_color = color;
+    }
+
+    pub fn fog_color_as_color(&self) -> wgpu::Color {
+        let fog_color = self.uniform.fog_color;
+        wgpu::Color {
+            r: fog_color[0] as f64,
+            g: fog_color[1] as f64,
+            b: fog_color[2] as f64,
+            a: 1.0,
+        }
+    }
+
     fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
         let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
         let proj = cgmath::perspective(cgmath::Deg(FOVY), self.aspect, Z_NEAR, Z_FAR);
@@ -59,11 +73,15 @@ impl Camera {
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CameraUniform {
     view_proj: [[f32; 4]; 4],
+    fog_color: [f32; 3],
+    _padding: f32,
 }
 impl CameraUniform {
     fn new() -> Self {
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
+            fog_color: [0.0, 0.0, 0.0],
+            _padding: 0.0,
         }
     }
 }

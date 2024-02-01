@@ -1,9 +1,5 @@
 pub const WINDOW_WIDTH: f64 = 800.0;
 pub const WINDOW_HEIGHT: f64 = 600.0;
 
-pub const CLEAR_COLOR: wgpu::Color = wgpu::Color {
-    r: 0.0008338051,
-    g: 0.00972121732,
-    b: 0.03310476657,
-    a: 1.0,
-};
+pub const LIGHT_COLOR: [f32; 3] = [15.0, 42.0, 71.0];
+pub const DARK_COLOR: [f32; 3] = [4.0, 6.0, 38.0];

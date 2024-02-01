@@ -36,11 +36,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - And more phsyically plausible
 - Propeller bubbles?
 - Shader/lighting effects
-    - Fog
-    - Lighting?
-    - Darker the deeper
-        - Scale clear color/fog color with sub depth
-    - Void plane to make it obvious you are looking below the terrain
+    - Lights?
 - Web build
 
 ## Controls

@@ -1,5 +1,7 @@
 struct CameraUniform {
     view_proj: mat4x4<f32>,
+    fog_color: vec3<f32>,
+    _padding: f32,
 };
 
 @group(0) @binding(0)
@@ -51,5 +53,4 @@ fn color_convert_srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(color_convert_srgb_to_linear(in.color), 1.0);
-    
 }

@@ -1,5 +1,7 @@
 struct CameraUniform {
     view_proj: mat4x4<f32>,
+    fog_color: vec3<f32>,
+    _padding: f32,
 };
 
 @group(0) @binding(0)
@@ -37,12 +39,11 @@ fn color_convert_srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    // let dist_value = clamp(in.dist, 0.0, 30.0) / 30.0;
+    let in_color = color_convert_srgb_to_linear(in.color);
+
     let dist_value = smoothstep(0.0, 40.0, in.dist);
     let dist = vec3<f32>(dist_value, dist_value, dist_value);
-    let fog_color = vec3<f32>(0.0, 0.1, 0.2);
-    let output = mix(in.color, fog_color, dist);
-    return vec4<f32>(color_convert_srgb_to_linear(output), 1.0);
 
-    // return vec4<f32>(color_convert_srgb_to_linear(in.color), 1.0);   
+    let output = mix(in_color, camera.fog_color, dist);
+    return vec4<f32>(output, 1.0);
 }

@@ -1,4 +1,4 @@
-use crate::{camera, chunk, draw, sub_obj};
+use crate::{camera, chunk, draw, sub_obj, util};
 use wgpu::util::DeviceExt;
 use cgmath::{EuclideanSpace, One, Rotation, Rotation3};
 use noise::NoiseFn;
@@ -144,6 +144,8 @@ pub struct Sub {
 
     num_verts: usize,
     num_prop_verts: usize,
+
+    color_mix: f32,
 }
 
 impl Sub {
@@ -311,6 +313,8 @@ impl Sub {
 
             num_verts: verts.len(),
             num_prop_verts: prop_verts.len(),
+
+            color_mix: util::create_mix_ratio(MIN_Z, MAX_Z, START_Z_OFFSET),
 		}
 	}
 
@@ -411,6 +415,8 @@ impl Sub {
         let prop_inst = draw::Instance::new(prop_inst_mat);
         queue.write_buffer(&self.prop_inst_buffer, 0, bytemuck::cast_slice(&[prop_inst]));
 
+        self.color_mix = util::create_mix_ratio(MIN_Z, MAX_Z, self.pos.z);
+
         self.keys.r_down
 	}
 
@@ -449,6 +455,8 @@ impl Sub {
 
     pub fn pos(&self) -> cgmath::Vector3<f32> { self.pos }
     pub fn bearing(&self) -> cgmath::Vector3<f32> { self.forward }
+
+    pub fn t(&self) -> f32 { self.color_mix }
 
     pub fn verts_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.slice(..) }
     pub fn prop_verts_buffer_slice(&self) -> wgpu::BufferSlice { self.prop_verts_buffer.slice(..) }
