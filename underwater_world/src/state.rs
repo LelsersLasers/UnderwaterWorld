@@ -503,7 +503,8 @@ impl<'a> State<'a> {
                     None => continue,
                 };
                 render_pass.set_vertex_buffer(0, chunk.verts_buffer_slice());
-                render_pass.draw(0..chunk.num_verts() as u32, 0..1);
+                render_pass.set_index_buffer(chunk.inds_buffer_slice(), wgpu::IndexFormat::Uint16);
+                render_pass.draw_indexed(0..chunk.num_inds() as u32, 0, 0..1);
             }
             //----------------------------------------------------------------//
 

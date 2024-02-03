@@ -27,8 +27,13 @@ impl BuildState {
 
 struct Build {
     chunk_offset: [i32; 3],
+    
     verts: Vec<draw::VertColor>,
-    num_verts: usize,
+    vert_pairs: Vec<([usize; 3], [usize; 3])>,
+
+    inds: Vec<u16>,
+    num_inds: usize,
+
     tris: HashMap<(usize, usize, usize), Vec<util::Tri>>,
     isos: Vec<f32>,
     x: i32,
@@ -38,7 +43,11 @@ impl Build {
         Self {
             chunk_offset,
             verts: Vec::new(),
-            num_verts: 0,
+            vert_pairs: Vec::new(),
+
+            inds: Vec::new(),
+            num_inds: 0,
+
             tris: HashMap::new(),
             isos: Vec::with_capacity(ISO_LEN * ISO_LEN * ISO_LEN),
             x: 0,
@@ -56,14 +65,17 @@ impl Build {
         self.verts.clear();
         self.verts.shrink_to(0);
 
+        self.inds.clear();
+        self.inds.shrink_to(0);
+
         self.x = -1;
     }
 }
 
 pub struct Chunk {
-	// num_verts: usize,
-    // tris: HashMap<(usize, usize, usize), Vec<util::Tri>>,
 	verts_buffer: Option<wgpu::Buffer>,
+    inds_buffer: Option<wgpu::Buffer>, 
+   
     build: Build,
     build_state: BuildState,
 }
@@ -78,6 +90,8 @@ impl Chunk {
 
         Self {
             verts_buffer: None,
+            inds_buffer: None,
+            
             build: Build::new(chunk_offset),
             build_state: BuildState::new(),
         }
@@ -203,8 +217,18 @@ impl Chunk {
                             ],
                             [0.7, color_intensity, color_intensity],
                         );
-                        self.build.verts.push(vert);
 
+                        let maybe_ind = self.build.vert_pairs.iter().position(|(a_, b_)| *a_ == corner_a && *b_ == corner_b);
+                        let ind = match maybe_ind {
+                            Some(ind) => ind,
+                            None => {
+                                let ind = self.build.vert_pairs.len();
+                                self.build.vert_pairs.push((corner_a, corner_b));
+                                self.build.verts.push(vert);
+                                ind
+                            }
+                        };
+                        self.build.inds.push(ind as u16);
 
                         current_tri.push(vert.pos);
                         if i % 3 == 2 {
@@ -222,7 +246,7 @@ impl Chunk {
             if self.build.x == INTERNAL_SIZE as i32 { break; }
         }
 
-        self.build.num_verts = self.build.verts.len();
+        self.build.num_inds = self.build.inds.len();
 
         self.build.x == INTERNAL_SIZE as i32
     }
@@ -252,13 +276,20 @@ impl Chunk {
             BuildState::Mesh => {
                 let finished = self.build_mesh();
                 if finished {
-                    if self.build.num_verts > 0 {
+                    if self.build.num_inds > 0 {
                         let verts_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                             label: Some(&format!("{:?} Chunk Vertex Buffer", self.build.chunk_offset)),
                             contents: bytemuck::cast_slice(&self.build.verts),
                             usage: wgpu::BufferUsages::VERTEX,
                         });
                         self.verts_buffer = Some(verts_buffer);
+
+                        let inds_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                            label: Some(&format!("{:?} Chunk Index Buffer", self.build.chunk_offset)),
+                            contents: bytemuck::cast_slice(&self.build.inds),
+                            usage: wgpu::BufferUsages::INDEX,
+                        });
+                        self.inds_buffer = Some(inds_buffer);
                     }
 
                     self.build_state = BuildState::Done;
@@ -268,24 +299,6 @@ impl Chunk {
             },
         }
     }
-
-    // pub fn tris_at(&self, pos: (i32, i32, i32)) -> &[util::Tri] {
-    //     let scaled_pos = (
-    //         pos.0 as f32 / SIZE_SCALE,
-    //         pos.1 as f32 / SIZE_SCALE,
-    //         pos.2 as f32 / SIZE_SCALE,
-    //     );
-    //     let rounded_pos = (
-    //         scaled_pos.0.round() as usize,
-    //         scaled_pos.1.round() as usize,
-    //         scaled_pos.2.round() as usize,
-    //     );
-
-    //     match self.build.tris.get(&rounded_pos) {
-    //         Some(tris) => tris,
-    //         None => &[],
-    //     }
-    // }
 
     pub fn tris_around(&self, local_pos_percent: (f32, f32, f32), range: i32) -> Vec<util::Tri> {
         let middle_x = (local_pos_percent.0 * INTERNAL_SIZE as f32).floor() as i32;
@@ -319,7 +332,8 @@ impl Chunk {
     pub fn not_blank(&self) -> bool { self.verts_buffer.is_some() }
     // only call if self is not blank
     pub fn verts_buffer_slice(&self) -> wgpu::BufferSlice { self.verts_buffer.as_ref().unwrap().slice(..) }
-	pub fn num_verts(&self) -> usize { self.build.num_verts }
+    pub fn inds_buffer_slice(&self) -> wgpu::BufferSlice { self.inds_buffer.as_ref().unwrap().slice(..) }
+    pub fn num_inds(&self) -> usize { self.build.num_inds }
 }
 
 fn corner_to_iso_idx(corner: [usize; 3]) -> usize {

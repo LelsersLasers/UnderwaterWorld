@@ -17,7 +17,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - What are actually the slow parts?
     - Indexing
         - Sub
-        - And for terrain
     - If have "extra preformance"
         - Bigger view distance (chunks + fog)
         - Build chunks faster/slower?
@@ -48,12 +47,13 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Performance
     - Chunk generation
         - Split across multiple frames
+        - Index buffers
         - Downscaling
         - Smart sorting
         - Blank chunk (+ early generation check)
         - View frustrum culling
         - Chunk generation order
-        - Spatial paritioning
+    - Spatial paritioning
 - Marching Cubes
 - Fish
     - 3d boids
