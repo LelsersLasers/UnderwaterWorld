@@ -15,6 +15,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - Wrapping
         - Try to stay within the view/generation view frustrums?
             - Would be able to lower the number of boids and have the same effect
+        - Z level
+            - With new terrain generation, the downforce causes them to be slightly hidden from view
     - Performance
         - The slowest part is actually the raycasting/wall collision checks
             - Might be a faster way to early exit
@@ -32,9 +34,9 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - More boids
             - More wall avoidence rays
             - Higher wall avoidance range
-- Better terrain generation
-    - And coloring terrain
-    - And more phsyically plausible
+- Terrain coloring
+    - Do by z level?
+    - With terracing effect?
 - Propeller bubbles?
 - Shader/lighting effects
     - Lights?
