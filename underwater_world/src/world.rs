@@ -13,7 +13,7 @@ const MIN_Z: i32 = -2;
 
 const STOP_FULL_BUILD: i32 = GENERATION_DIST * GENERATION_DIST * GENERATION_DIST;
 
-const VIEW_FRUST_FOVY: f32 = 50.0;
+const VIEW_FRUST_FOVY: f32 = 55.0;
 const GENERATE_FRUST_FOVY: f32 = 90.0;
 
 struct GeneratingChunk {

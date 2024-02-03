@@ -9,6 +9,7 @@ const SIZE_SCALE: f32 = CHUNK_SIZE as f32 / INTERNAL_SIZE as f32;
 pub const PERLIN_OCTAVES: u32 = 3;
 pub const ISO_LEVEL: f32 = -0.1;
 pub const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
+pub const ADJ_Z_MOD: f32 = 0.25;
 
 const X_GENERATION_STEP_ISO: i32 = 13;
 const X_GENERATION_STEP_MESH: i32 = 4;

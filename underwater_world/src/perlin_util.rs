@@ -24,5 +24,6 @@ pub fn perlin_3d_octaves(perlin: &noise::Perlin, point: [f64; 3], octaves: u32) 
 pub fn iso_at(perlin: &noise::Perlin, x: f64, y: f64, z: f64) -> f32 {
     let corner = [x, y, z];
     let p = perlin_3d_octaves(perlin, corner, chunk::PERLIN_OCTAVES) as f32;
-    p + (z as f32 * chunk::CHUNK_SIZE as f32 / chunk::MAX_HEIGHT)
+    let adj_z = z as f32 * chunk::CHUNK_SIZE as f32 / chunk::MAX_HEIGHT;
+    adj_z + p - adj_z % chunk::ADJ_Z_MOD
 }
