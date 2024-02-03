@@ -28,7 +28,7 @@ const WRAP_STRENGTH: f32 = 1.975;
 const ISO_PADDING: f32 = 0.075;
 const NEW_Z_STEP: f32 = 2.0;
 const POS_RANGE_XY: f32 = 46.0;
-const POS_RANGE_Z: f32 = 16.0;
+const POS_RANGE_Z: f32 = 12.0;
 
 const SPAT_PART_SIZE: f32 = PERCEPTION_RADIUS;
 
