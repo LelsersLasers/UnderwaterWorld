@@ -526,9 +526,10 @@ impl<'a> State<'a> {
                 render_pass.set_bind_group(1, self.boid_manager.diffuse_bind_group(*species), &[]);
 
                 render_pass.set_vertex_buffer(0, self.boid_manager.verts_buffer_slice(*species));
+                render_pass.set_index_buffer(self.boid_manager.inds_buffer_slice(*species), wgpu::IndexFormat::Uint16);
                 render_pass.set_vertex_buffer(1, self.boid_manager.inst_buffer_slice(*species));
 
-                render_pass.draw(0..self.boid_manager.num_verts(*species) as u32, 0..self.boid_manager.num_inst(*species) as u32);
+                render_pass.draw_indexed(0..self.boid_manager.num_inds(*species) as u32, 0, 0..self.boid_manager.num_inst(*species) as u32);
             }
             //----------------------------------------------------------------//
         }

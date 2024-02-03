@@ -328,9 +328,10 @@ struct PerSpecies {
     insts: Vec<draw::InstanceTime>,
 
     verts_buffer: wgpu::Buffer,
+    inds_buffer: wgpu::Buffer,
     inst_buffer: wgpu::Buffer,
 
-    num_verts: usize,
+    num_inds: usize,
 }
 
 pub struct BoidManager {
@@ -407,7 +408,10 @@ impl BoidManager {
 
             let mut vert_poses = Vec::new();
             let mut vert_txs = Vec::new();
+
             let mut verts = Vec::new();
+            let mut vert_pairs = Vec::new(); // (v, vt)
+            let mut inds = Vec::new();
 
             let mut highest_v: f32 = 0.0;
 
@@ -445,21 +449,23 @@ impl BoidManager {
                         let remaining = split.collect::<Vec<&str>>();
                         let n = remaining.len();
                         for i in 1..(n - 1) {
-                            let mut i0 = remaining[0].split('/');
-                            let mut i1 = remaining[i].split('/');
-                            let mut i2 = remaining[i + 1].split('/');
+                            for j in [0, i, i + 1] {
+                                let mut piece = remaining[j].split('/');
+                                let v = piece.next().unwrap().parse::<usize>().unwrap() - 1;
+                                let vt = piece.next().unwrap().parse::<usize>().unwrap() - 1;
 
-                            let v0 = i0.next().unwrap().parse::<usize>().unwrap() - 1;
-                            let v1 = i1.next().unwrap().parse::<usize>().unwrap() - 1;
-                            let v2 = i2.next().unwrap().parse::<usize>().unwrap() - 1;
-
-                            let vt0 = i0.next().unwrap().parse::<usize>().unwrap() - 1;
-                            let vt1 = i1.next().unwrap().parse::<usize>().unwrap() - 1;
-                            let vt2 = i2.next().unwrap().parse::<usize>().unwrap() - 1;
-
-                            verts.push(draw::VertTex::new(vert_poses[v0], vert_txs[vt0]));
-                            verts.push(draw::VertTex::new(vert_poses[v1], vert_txs[vt1]));
-                            verts.push(draw::VertTex::new(vert_poses[v2], vert_txs[vt2]));
+                                let maybe_ind = vert_pairs.iter().position(|(v_, vt_)| *v_ == v && *vt_ == vt);
+                                let ind = match maybe_ind {
+                                    Some(ind) => ind,
+                                    None => {
+                                        let ind = vert_pairs.len();
+                                        vert_pairs.push((v, vt));
+                                        verts.push(draw::VertTex::new(vert_poses[v], vert_txs[vt]));
+                                        ind
+                                    }
+                                };
+                                inds.push(ind as u16);
+                            }
                         }
                     }
                     _ => {}
@@ -478,6 +484,12 @@ impl BoidManager {
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
+            let inds_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some(&format!("{:?} Index Buffer", species)),
+                contents: bytemuck::cast_slice(&inds),
+                usage: wgpu::BufferUsages::INDEX,
+            });
+
             let inst_buffer = device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: Some("Instance Buffer"),
@@ -492,9 +504,10 @@ impl BoidManager {
                 insts,
 
                 verts_buffer,
+                inds_buffer,
                 inst_buffer,
 
-                num_verts: verts.len(),
+                num_inds: inds.len(),
             });
         }
 
@@ -515,33 +528,6 @@ impl BoidManager {
             let v_norm = util::safe_normalize(v);
             avoidance_rays.push(v_norm);
         }
-
-
-        // let center = cgmath::Vector3::new(0.5, 0.5, 0.5);
-        // let corners = [
-        //     cgmath::Vector3::new(0.0, 0.0, 0.0),
-        //     cgmath::Vector3::new(1.0, 0.0, 0.0),
-        //     cgmath::Vector3::new(0.0, 1.0, 0.0),
-        //     cgmath::Vector3::new(1.0, 1.0, 0.0),
-        //     cgmath::Vector3::new(0.0, 0.0, 1.0),
-        //     cgmath::Vector3::new(1.0, 0.0, 1.0),
-        //     cgmath::Vector3::new(0.0, 1.0, 1.0),
-        //     cgmath::Vector3::new(1.0, 1.0, 1.0),
-        // ];
-        // let corner_vectors = corners.iter().map(|corner| {
-        //     let offset = corner - center;
-        //     util::safe_normalize(offset)
-        // }).collect::<Vec<_>>();
-        // let face_vectors = [
-        //     cgmath::Vector3::new(0.0, 0.0, -1.0),
-        //     cgmath::Vector3::new(0.0, 0.0, 1.0),
-        //     cgmath::Vector3::new(0.0, -1.0, 0.0),
-        //     cgmath::Vector3::new(0.0, 1.0, 0.0),
-        //     cgmath::Vector3::new(-1.0, 0.0, 0.0),
-        //     cgmath::Vector3::new(1.0, 0.0, 0.0),
-        // ];
-        // let mut avoidance_rays = corner_vectors.clone();
-        // avoidance_rays.extend(face_vectors);
 
         avoidance_rays.sort_unstable_by(|ray1, ray2| {
             let angle1 = cgmath::Vector3::unit_x().angle(*ray1);
@@ -638,8 +624,10 @@ impl BoidManager {
     }
 
     pub fn verts_buffer_slice(&self, species: Species) -> wgpu::BufferSlice { self.per_species[species as usize].verts_buffer.slice(..) }
+    pub fn inds_buffer_slice(&self, species: Species) -> wgpu::BufferSlice { self.per_species[species as usize].inds_buffer.slice(..) }
     pub fn inst_buffer_slice(&self, species: Species) -> wgpu::BufferSlice { self.per_species[species as usize].inst_buffer.slice(..) }
     pub fn diffuse_bind_group(&self, species: Species) -> &wgpu::BindGroup { &self.per_species[species as usize].diffuse_bind_group }
-    pub fn num_verts(&self, species: Species) -> usize { self.per_species[species as usize].num_verts }
+    // pub fn num_verts(&self, species: Species) -> usize { self.per_species[species as usize].num_verts }
+    pub fn num_inds(&self, species: Species) -> usize { self.per_species[species as usize].num_inds }
     pub fn num_inst(&self, _species: Species) -> usize { NUM_BOIDS }
 }
