@@ -37,11 +37,11 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Terrain coloring
     - Do by z level?
     - With terracing effect?
-- Propeller bubbles?
 - Shader/lighting effects
     - Lights?
         - Angle between sub forward vec and dist vec
-- Web build
+- README.md write up
+- itch.io page
 
 ## Controls
 
