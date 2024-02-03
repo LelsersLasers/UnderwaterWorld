@@ -15,7 +15,7 @@ const AVOIDANCE_RADIUS: f32 = 2.0;
 const WALL_RANGE: i32 = 3;
 const WALL_FORCE_MULT: f32 = 1.0;
 const WALL_FORCE_DECAY: f32 = 100.0;
-const RAY_DIRECTION_COUNT: usize = 20;
+const RAY_DIRECTION_COUNT: usize = 16;
 
 const MAX_STEER_FORCE: f32 = 4.0;
 
@@ -221,16 +221,14 @@ impl Boid {
 
                 let safe_dir = all_tris.iter().all(|tri| {
                     let t = tri.intersects(self.pos, ray, WALL_RANGE as f32);
-                    // match t {
-                    //     Some(t) => t > WALL_RANGE as f32,
-                    //     None => true,
-                    // }
-                    t.is_none()
+                    match t {
+                        Some(t) => t > WALL_RANGE as f32,
+                        None => true,
+                    }
                 });
 
                 if safe_dir {
                     let force = self.steer_towards(ray) * WALL_FORCE_MULT;
-                    // TODO: does this need a `* delta`
                     self.wall_accel += force;
                     break 'ray;
                 }
