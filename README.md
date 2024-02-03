@@ -22,6 +22,9 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
                 - Know we only want the closest t, look for that first?
 - Preformance
     - What are actually the slow parts?
+    - Instancing?
+        - *_obj.rs
+        - And for terrain
     - If have "extra preformance"
         - Bigger view distance (chunks + fog)
         - Build chunks faster/slower?
@@ -35,6 +38,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Propeller bubbles?
 - Shader/lighting effects
     - Lights?
+        - Angle between sub forward vec and dist vec
 - Web build
 
 ## Controls

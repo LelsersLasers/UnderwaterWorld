@@ -165,6 +165,14 @@ impl World {
                 let chunk_y = sub_chunk.1 + y;
 
                 for chunk_z in start_z..=end_z {
+                    let chunk_center = cgmath::Vector3::new(
+                        (chunk_x as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
+                        (chunk_y as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
+                        (chunk_z as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
+                    );
+                    let dist = (sub_pos - chunk_center).magnitude();
+                    if dist > max_generation_dist { continue; }
+
                     let corners = [
                         (0.0, 0.0, 0.0),
                         (1.0, 0.0, 0.0),
@@ -195,14 +203,6 @@ impl World {
                         }
                     }
 
-                    let chunk_center = cgmath::Vector3::new(
-                        (chunk_x as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
-                        (chunk_y as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
-                        (chunk_z as f32 + 0.5) * chunk::CHUNK_SIZE as f32,
-                    );
-                    let dist = (sub_pos - chunk_center).magnitude();
-                    if dist > max_generation_dist { continue; }
-
                     let chunk_pos = (chunk_x, chunk_y, chunk_z);
 
                     match self.get_chunk(chunk_pos) {
@@ -212,9 +212,6 @@ impl World {
                             }
                         }
                         None => {
-                            // let sort = dist * dist;
-                            // let sort = sort + chunk_z as f32 * chunk::CHUNK_SIZE as f32;
-                            // let sort = sort * (1.0 - frustrum_percent);
                             let gen_prio = GenPrio {
                                 dist,
                                 z: chunk_z as f32 * chunk::CHUNK_SIZE as f32,
