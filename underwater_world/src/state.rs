@@ -448,7 +448,7 @@ impl<'a> State<'a> {
 
         let t = self.sub.t();
         let clear_color_rgb = util::mix_color(consts::LIGHT_COLOR, consts::DARK_COLOR, t);
-        let clear_color = util::color_convert_srgb_to_linear(clear_color_rgb);
+        let clear_color = util::to_srgb(clear_color_rgb);
         self.camera.set_fog_color(clear_color);
 
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[*self.camera.uniform()]));

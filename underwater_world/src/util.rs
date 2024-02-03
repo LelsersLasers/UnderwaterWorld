@@ -102,7 +102,8 @@ pub fn mix_color(light: [f32; 3], dark: [f32; 3], ratio: f32) -> [f32; 3] {
     ]
 }
 
-pub fn color_convert_srgb_to_linear(color: [f32; 3]) -> [f32; 3] {
+// srgb_color = ((rgb_color / 255 + 0.055) / 1.055) ^ 2.4
+pub fn to_srgb(color: [f32; 3]) -> [f32; 3] {
     [
         ((color[0] / 255.0 + 0.055) / 1.055).powf(2.4),
         ((color[1] / 255.0 + 0.055) / 1.055).powf(2.4),
@@ -110,8 +111,36 @@ pub fn color_convert_srgb_to_linear(color: [f32; 3]) -> [f32; 3] {
     ]
 }
 
-// // srgb_color = ((rgb_color / 255 + 0.055) / 1.055) ^ 2.4
-// fn color_convert_srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
-//     let linear = (srgb + 0.055) / 1.055;
-//     return pow(linear, vec3<f32>(2.4, 2.4, 2.4));
-// }
+// https://github.com/jayber/hsv/blob/main/src/lib.rs
+pub fn hsv_to_rgb(hue: f32, saturation: f32, value: f32) -> [f32; 3] {
+    let hue = hue.rem_euclid(360.0);
+
+    fn is_between(value: f32, min: f32, max: f32) -> bool {
+        min <= value && value < max
+    }
+
+    let c = value * saturation;
+    let h = hue / 60.0;
+    let x = c * (1.0 - ((h % 2.0) - 1.0).abs());
+    let m = value - c;
+
+    let (r, g, b): (f32, f32, f32) = if is_between(h, 0.0, 1.0) {
+        (c, x, 0.0)
+    } else if is_between(h, 1.0, 2.0) {
+        (x, c, 0.0)
+    } else if is_between(h, 2.0, 3.0) {
+        (0.0, c, x)
+    } else if is_between(h, 3.0, 4.0) {
+        (0.0, x, c)
+    } else if is_between(h, 4.0, 5.0) {
+        (x, 0.0, c)
+    } else {
+        (c, 0.0, x)
+    };
+
+    [
+        ((r + m) * 255.0),
+        ((g + m) * 255.0),
+        ((b + m) * 255.0),
+    ]
+}

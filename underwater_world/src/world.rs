@@ -8,8 +8,8 @@ const RECHECK_NEARBY_ANGLE: f32 = 0.33;
 pub const VIEW_DIST: i32 = 4;
 const GENERATION_DIST: i32 = 5;
 const KEEP_DIST: i32 = 6;
-const MAX_Z: i32 = 2;
-const MIN_Z: i32 = -2;
+pub const MAX_Z: i32 = 2;
+pub const MIN_Z: i32 = -2;
 
 const STOP_FULL_BUILD: i32 = GENERATION_DIST * GENERATION_DIST * GENERATION_DIST;
 

@@ -1,4 +1,4 @@
-use crate::{marching_table, draw, perlin_util, util};
+use crate::{draw, marching_table, perlin_util, util, world};
 use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
@@ -10,6 +10,11 @@ pub const PERLIN_OCTAVES: u32 = 3;
 pub const ISO_LEVEL: f32 = -0.1;
 pub const MAX_HEIGHT: f32 = (CHUNK_SIZE * 2) as f32;
 pub const ADJ_Z_MOD: f32 = 0.25;
+
+pub const MIN_HUE: f32 = -150.0;
+pub const MAX_HUE: f32 = 60.0;
+pub const SATURATION: f32 = 0.8;
+pub const VALUE: f32 = 0.4;
 
 const X_GENERATION_STEP_ISO: i32 = 13;
 const X_GENERATION_STEP_MESH: i32 = 4;
@@ -207,15 +212,21 @@ impl Chunk {
                             scaled_corner_a[2] + t * corner_diff[2],
                         ];
 
-                        let color_intensity = *tri_index as f32 / 16.0;
+                        let world_z = middle[2] + chunk_offset[2] as f32;
+                        let world_z_ratio = world_z / CHUNK_SIZE as f32;
+                        let mix_ratio = util::create_mix_ratio(world::MIN_Z as f32, world::MAX_Z as f32, world_z_ratio);
+
+                        let hue = MIN_HUE + (MAX_HUE - MIN_HUE) * mix_ratio;
+                        let rgb_color = util::hsv_to_rgb(hue as f32, SATURATION, VALUE);
+                        let srgb_color = util::to_srgb(rgb_color);
 
                         let vert = draw::VertColor::new(
                             [
                                 middle[0] + chunk_offset[0] as f32,
                                 middle[1] + chunk_offset[1] as f32,
-                                middle[2] + chunk_offset[2] as f32,
+                                world_z,
                             ],
-                            [0.7, color_intensity, color_intensity],
+                            srgb_color,
                         );
 
                         let maybe_ind = self.build.vert_pairs.iter().position(|(a_, b_)| *a_ == corner_a && *b_ == corner_b);
