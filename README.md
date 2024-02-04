@@ -10,6 +10,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - Would be able to lower the number of boids and have the same effect
 - Preformance
     - What are actually the slow parts?
+    - What parts go in vertex shader vs fragment shader?
+    - Pack uniform data without padding floats
     - If have "extra preformance"
         - Bigger view distance (chunks + fog)
         - Build chunks faster/slower?

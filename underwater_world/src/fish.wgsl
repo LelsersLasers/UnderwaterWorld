@@ -4,6 +4,8 @@ struct CameraUniform {
     _padding1: f32,
     sub_pos: vec3<f32>,
     _padding2: f32,
+    sub_forward: vec3<f32>,
+    _padding3: f32,
 };
 
 @group(0) @binding(0)

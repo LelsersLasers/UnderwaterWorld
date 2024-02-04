@@ -20,6 +20,8 @@ const TARGET_DOWN: f32 = 0.6;
 const HORIZONTAL_OFFSET: f32 = 7.0;
 const VERTICAL_OFFSET: f32 = 6.0;
 
+const LIGHT_DOWN_OFFSET: f32 = 0.25;
+
 const PROP_START_X: f32 = -120.0;
 const SUB_MODEL_SCALE: f32 = 2.5;
 const PERLIN_FACTOR: f32 = 2.0;
@@ -115,6 +117,8 @@ impl Keys {
 
 pub struct Sub {
 	pos: cgmath::Vector3<f32>,
+
+    front_x: f32,
 
     up: cgmath::Vector3<f32>,
     forward: cgmath::Vector3<f32>,
@@ -228,6 +232,7 @@ impl Sub {
             }
         }
 
+        let mut front_x = 0.0;
         verts.iter_mut().for_each(|v| {
             v.pos[0] *= SUB_MODEL_SCALE / highest_v;
             v.pos[1] *= SUB_MODEL_SCALE / highest_v;
@@ -237,6 +242,10 @@ impl Sub {
             v.color[0] += p / PERLIN_FACTOR;
             v.color[1] += p / PERLIN_FACTOR;
             v.color[2] += p / PERLIN_FACTOR;
+
+            if v.pos[0] > front_x {
+                front_x = v.pos[0];
+            }
         });
 
         prop_verts.iter_mut().for_each(|v| {
@@ -285,6 +294,8 @@ impl Sub {
 
 		Self {
 			pos: cgmath::Vector3::new(0.0, 0.0, START_Z_OFFSET),
+
+            front_x,
 
             up: cgmath::Vector3::unit_z(),
             forward: cgmath::Vector3::unit_x(),
@@ -440,6 +451,13 @@ impl Sub {
         // camera.up = self.up;
         
 		camera.set_sub_pos(self.pos.into());
+
+        let light_forward = self.forward - self.up * LIGHT_DOWN_OFFSET;
+        camera.set_sub_dir(light_forward.into());
+
+        // let front_vec = util::safe_normalize_to(self.forward, self.front_x);
+        // let front_pos = self.pos + front_vec;
+        // camera.build_light(front_pos, self.forward, self.up);
 		camera.update_uniform();
 	}
 
