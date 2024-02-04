@@ -118,8 +118,6 @@ impl Keys {
 pub struct Sub {
 	pos: cgmath::Vector3<f32>,
 
-    front_x: f32,
-
     up: cgmath::Vector3<f32>,
     forward: cgmath::Vector3<f32>,
     right: cgmath::Vector3<f32>,
@@ -232,7 +230,6 @@ impl Sub {
             }
         }
 
-        let mut front_x = 0.0;
         verts.iter_mut().for_each(|v| {
             v.pos[0] *= SUB_MODEL_SCALE / highest_v;
             v.pos[1] *= SUB_MODEL_SCALE / highest_v;
@@ -242,10 +239,6 @@ impl Sub {
             v.color[0] += p / PERLIN_FACTOR;
             v.color[1] += p / PERLIN_FACTOR;
             v.color[2] += p / PERLIN_FACTOR;
-
-            if v.pos[0] > front_x {
-                front_x = v.pos[0];
-            }
         });
 
         prop_verts.iter_mut().for_each(|v| {
@@ -294,8 +287,6 @@ impl Sub {
 
 		Self {
 			pos: cgmath::Vector3::new(0.0, 0.0, START_Z_OFFSET),
-
-            front_x,
 
             up: cgmath::Vector3::unit_z(),
             forward: cgmath::Vector3::unit_x(),
