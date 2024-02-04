@@ -34,14 +34,6 @@ impl Camera {
         }
     }
 
-    pub fn uniform(&self) -> &CameraUniform {
-        &self.uniform
-    }
-
-    pub fn set_fog_color(&mut self, color: [f32; 3]) {
-        self.uniform.fog_color = color;
-    }
-
     pub fn fog_color_as_color(&self) -> wgpu::Color {
         let fog_color = self.uniform.fog_color;
         wgpu::Color {
@@ -51,6 +43,10 @@ impl Camera {
             a: 1.0,
         }
     }
+
+    pub fn uniform(&self) -> &CameraUniform { &self.uniform }
+    pub fn set_fog_color(&mut self, color: [f32; 3]) { self.uniform.fog_color = color; }
+    pub fn set_sub_pos(&mut self, pos: [f32; 3]) { self.uniform.sub_pos = pos; }
 
     fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
         let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
@@ -74,14 +70,18 @@ impl Camera {
 pub struct CameraUniform {
     view_proj: [[f32; 4]; 4],
     fog_color: [f32; 3],
-    _padding: f32,
+    _padding1: f32,
+    sub_pos: [f32; 3],
+    _padding2: f32,
 }
 impl CameraUniform {
     fn new() -> Self {
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
             fog_color: [0.0, 0.0, 0.0],
-            _padding: 0.0,
+            _padding1: 0.0,
+            sub_pos: [0.0, 0.0, 0.0],
+            _padding2: 0.0,
         }
     }
 }

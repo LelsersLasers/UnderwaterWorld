@@ -1,7 +1,9 @@
 struct CameraUniform {
     view_proj: mat4x4<f32>,
     fog_color: vec3<f32>,
-    _padding: f32,
+    _padding1: f32,
+    sub_pos: vec3<f32>,
+    _padding2: f32,
 };
 
 @group(0) @binding(0)
@@ -70,8 +72,9 @@ fn vs_main(
 
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
-    out.clip_position = camera.view_proj * model_matrix * pos;
-    out.dist = length(out.clip_position.xyz);
+    let world_pos = model_matrix * pos;
+    out.clip_position = camera.view_proj * world_pos;
+    out.dist = length(world_pos.xyz - camera.sub_pos);
     return out;
 }
 

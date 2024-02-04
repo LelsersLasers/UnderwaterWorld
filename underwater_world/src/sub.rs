@@ -437,7 +437,8 @@ impl Sub {
 		let up_move = up_diff * delta * CAMERA_FOLLOW_SPEED;
 		camera.up += up_move;
         // camera.up = self.up;
-		
+        
+		camera.set_sub_pos(self.pos.into());
 		camera.update_uniform();
 	}
 
