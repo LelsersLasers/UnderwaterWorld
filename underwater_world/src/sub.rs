@@ -455,10 +455,7 @@ impl Sub {
         let light_forward = self.forward - self.up * LIGHT_DOWN_OFFSET;
         camera.set_sub_dir(light_forward.into());
 
-        // let front_vec = util::safe_normalize_to(self.forward, self.front_x);
-        // let front_pos = self.pos + front_vec;
-        // camera.build_light(front_pos, self.forward, self.up);
-		camera.update_uniform();
+        camera.update_uniform();
 	}
 
 	pub fn process_events(&mut self, event: &winit::event::WindowEvent) -> bool {

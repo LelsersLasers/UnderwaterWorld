@@ -65,14 +65,6 @@ impl Camera {
         OPENGL_TO_WGPU_MATRIX * (proj * view)
     }
 
-    // pub fn build_light(&mut self, pos: cgmath::Vector3<f32>, dir: cgmath::Vector3<f32>, up: cgmath::Vector3<f32>) {
-    //     let pt = cgmath::Point3::from_vec(pos);
-    //     let target = pt + dir;
-    //     let view = cgmath::Matrix4::look_at_rh(pt, target, up);
-    //     let proj = cgmath::perspective(cgmath::Deg(LIGHT_FOVY), self.aspect, LIGHT_Z_NEAR, LIGHT_Z_FAR);
-    //     self.uniform.light_view_proj = (OPENGL_TO_WGPU_MATRIX * (proj * view)).into();
-    // }
-
     pub fn update_uniform(&mut self) {
         self.uniform.view_proj = self.build_view_projection_matrix().into();
     }
@@ -82,7 +74,6 @@ impl Camera {
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CameraUniform {
     view_proj: [[f32; 4]; 4],
-    // light_view_proj: [[f32; 4]; 4],
     fog_color: [f32; 3],
     _padding1: f32,
     sub_pos: [f32; 3],
@@ -94,7 +85,6 @@ impl CameraUniform {
     fn new() -> Self {
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
-            // light_view_proj: cgmath::Matrix4::identity().into(),
             fog_color: [0.0, 0.0, 0.0],
             _padding1: 0.0,
             sub_pos: [0.0, 0.0, 0.0],
