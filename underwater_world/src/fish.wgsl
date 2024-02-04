@@ -102,7 +102,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let fog_color = vec4<f32>(camera.fog_color, 1.0);
 
     let min_dist_value = smoothstep(0.0, 20.0, clamp(in.dist, 0.0, 20.0));
-    let max_dist_value = smoothstep(0.0, 40.0, clamp(in.dist, 0.0, 40.0));
+    let max_dist_value = smoothstep(0.0, 45.0, clamp(in.dist, 0.0, 45.0));
     let dark_value = clamp(1.0 - in.light, max_dist_value, min_dist_value);
 
     let output = mix(in_color, fog_color, dark_value);

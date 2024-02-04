@@ -52,7 +52,7 @@ fn vs_main(
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let min_dist_value = smoothstep(0.0, 20.0, clamp(in.dist, 0.0, 20.0));
-    let max_dist_value = smoothstep(0.0, 40.0, clamp(in.dist, 0.0, 40.0));
+    let max_dist_value = smoothstep(0.0, 45.0, clamp(in.dist, 0.0, 45.0));
     let dark_value = clamp(1.0 - in.light, max_dist_value, min_dist_value);
 
     let output = mix(in.color, camera.fog_color, dark_value);
