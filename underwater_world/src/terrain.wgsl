@@ -19,34 +19,33 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) color: vec3<f32>,
+    @location(1) dist: f32,
+    @location(2) light: f32,
 }
 
 @vertex
 fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
-    let half_pi = 3.14159 / 2.0;
+    let pi = 3.14159;
+    let half_pi = pi / 2.0;
 
     var out: VertexOutput;
-    out.clip_position = camera.view_proj * vec4<f32>(model.position, 1.0);    
-
+    out.color = model.color;
+    
+    out.clip_position = camera.view_proj * vec4<f32>(model.position, 1.0);
 
     let dist_vec = model.position - camera.sub_pos;
-    let dist = length(dist_vec);
     
+    out.dist = length(dist_vec);
+
     let dot = dot(dist_vec, camera.sub_forward);
     let cos_angle = dot / (length(dist_vec) * length(camera.sub_forward)); 
     let angle = acos(cos_angle);
 
     let squished = angle * 3.0;
     let light = cos(squished) * f32(angle < half_pi);
-
-    let min_dist_value = smoothstep(0.0, 20.0, clamp(dist, 0.0, 20.0));
-    let max_dist_value = smoothstep(0.0, 40.0, clamp(dist, 0.0, 40.0));
-    let dark_value = clamp(1.0 - light, max_dist_value, min_dist_value);
-
-    let color = mix(model.color, camera.fog_color, dark_value);
-    out.color = color;
+    out.light = smoothstep(0.0, 1.0, light);
 
     return out;
 }
@@ -55,5 +54,10 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(in.color, 1.0);
+    let min_dist_value = smoothstep(0.0, 20.0, clamp(in.dist, 0.0, 20.0));
+    let max_dist_value = smoothstep(0.0, 40.0, clamp(in.dist, 0.0, 40.0));
+    let dark_value = clamp(1.0 - in.light, max_dist_value, min_dist_value);
+
+    let output = mix(in.color, camera.fog_color, dark_value);
+    return vec4<f32>(output, 1.0);
 }
