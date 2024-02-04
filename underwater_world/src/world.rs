@@ -111,7 +111,7 @@ impl World {
     }
 
     fn build_full_step(&mut self, perlin: &noise::Perlin, device: &wgpu::Device) {
-        if let Some((pos, _dist)) = self.chunks_to_generate.pop() {
+        if let Some((pos, _gen_prio)) = self.chunks_to_generate.pop() {
             let mut chunk = chunk::Chunk::new(pos);
             chunk.build_full(perlin, device);
             if chunk.not_blank() {
@@ -138,6 +138,9 @@ impl World {
         } else if let Some((pos, _dist)) = self.chunks_to_generate.pop() {
             let chunk = chunk::Chunk::new(pos);
             self.generating_chunk = Some(GeneratingChunk { chunk_pos: pos, chunk });
+
+            // Did no work so far on this frame otherwise
+            self.build_step(sub, perlin, device);
         }
     }
 

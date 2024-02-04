@@ -8,15 +8,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - Wrapping
         - Try to stay within the view/generation view frustrums?
             - Would be able to lower the number of boids and have the same effect
-    - Performance
-        - The slowest part is actually the raycasting/wall collision checks
-            - Might be a faster way to early exit
-                - Early dist check before intersection check?
-                - Know we only want the closest t, look for that first?
 - Preformance
     - What are actually the slow parts?
-    - Indexing
-        - Sub
     - If have "extra preformance"
         - Bigger view distance (chunks + fog)
         - Build chunks faster/slower?
@@ -27,6 +20,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Terrain coloring
     - Do by z level?
     - With terracing effect?
+    - Lower z -> darker?
 - Shader/lighting effects
     - Lights?
         - Angle between sub forward vec and dist vec
