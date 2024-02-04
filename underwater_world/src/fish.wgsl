@@ -33,6 +33,7 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
     @location(1) dist: f32,
+    @location(2) light: f32,
 }
 
 const HEAD_X: f32 = 0.0;
@@ -53,6 +54,7 @@ fn vs_main(
     model: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
+    let half_pi = 3.14159 / 2.0;
 
     let model_matrix = mat4x4<f32>(
         instance.model_matrix_0,
@@ -74,9 +76,21 @@ fn vs_main(
 
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
+
     let world_pos = model_matrix * pos;
     out.clip_position = camera.view_proj * world_pos;
-    out.dist = length(world_pos.xyz - camera.sub_pos);
+
+    let dist_vec = world_pos.xyz - camera.sub_pos;
+    out.dist = length(dist_vec);
+
+    let dot = dot(dist_vec, camera.sub_forward);
+    let cos_angle = dot / (length(dist_vec) * length(camera.sub_forward)); 
+    let angle = acos(cos_angle);
+
+    let squished = angle * 3.0;
+    let light = cos(squished) * f32(angle < half_pi);
+    out.light = smoothstep(0.0, 1.0, light);
+    
     return out;
 }
 
@@ -87,9 +101,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let in_color = textureSample(t_diffuse, s_diffuse, in.tex_coords);
     let fog_color = vec4<f32>(camera.fog_color, 1.0);
 
-    let dist_value = smoothstep(0.0, 40.0, in.dist);
-    let dist = vec4<f32>(dist_value, dist_value, dist_value, dist_value);
+    let min_dist_value = smoothstep(0.0, 20.0, clamp(in.dist, 0.0, 20.0));
+    let max_dist_value = smoothstep(0.0, 40.0, clamp(in.dist, 0.0, 40.0));
+    let dark_value = clamp(1.0 - in.light, max_dist_value, min_dist_value);
 
-    let output = mix(in_color, fog_color, dist);
+    let output = mix(in_color, fog_color, dark_value);
     return output;
 }

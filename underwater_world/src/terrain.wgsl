@@ -31,11 +31,9 @@ fn vs_main(
 
     var out: VertexOutput;
     out.color = model.color;
-    
     out.clip_position = camera.view_proj * vec4<f32>(model.position, 1.0);
 
     let dist_vec = model.position - camera.sub_pos;
-    
     out.dist = length(dist_vec);
 
     let dot = dot(dist_vec, camera.sub_forward);
