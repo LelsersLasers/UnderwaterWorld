@@ -80,13 +80,6 @@ fn vs_main(
 
 //----------------------------------------------------------------------------//
 
-// srgb_color = ((rgb_color / 255 + 0.055) / 1.055) ^ 2.4
-fn color_convert_srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
-    let linear = (srgb + 0.055) / 1.055;
-    return pow(linear, vec3<f32>(2.4, 2.4, 2.4));
-}
-
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let in_color = textureSample(t_diffuse, s_diffuse, in.tex_coords);

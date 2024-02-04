@@ -41,11 +41,9 @@ fn color_convert_srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let in_color = color_convert_srgb_to_linear(in.color);
-
     let dist_value = smoothstep(0.0, 40.0, in.dist);
     let dist = vec3<f32>(dist_value, dist_value, dist_value);
 
-    let output = mix(in_color, camera.fog_color, dist);
+    let output = mix(in.color, camera.fog_color, dist);
     return vec4<f32>(output, 1.0);
 }

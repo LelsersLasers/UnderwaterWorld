@@ -110,6 +110,13 @@ pub fn to_srgb(color: [f32; 3]) -> [f32; 3] {
         ((color[2] / 255.0 + 0.055) / 1.055).powf(2.4),
     ]
 }
+pub fn to_srgb_decimal(color: [f32; 3]) -> [f32; 3] {
+    [
+        ((color[0] + 0.055) / 1.055).powf(2.4),
+        ((color[1] + 0.055) / 1.055).powf(2.4),
+        ((color[2] + 0.055) / 1.055).powf(2.4),
+    ]
+}
 
 // https://github.com/jayber/hsv/blob/main/src/lib.rs
 pub fn hsv_to_rgb(hue: f32, saturation: f32, value: f32) -> [f32; 3] {

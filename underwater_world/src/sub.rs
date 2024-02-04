@@ -221,7 +221,8 @@ impl Sub {
                     if mat == "default" {
                         mat = "Mat.2";
                     }
-                    active_color = *mats.get(mat).unwrap_or(&active_color);
+                    let active_color_rgb = *mats.get(mat).unwrap_or(&active_color);
+                    active_color = util::to_srgb_decimal(active_color_rgb);
                 }
                 _ => {}
             }

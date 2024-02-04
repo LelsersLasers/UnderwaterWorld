@@ -213,12 +213,16 @@ impl Chunk {
                         ];
 
                         let world_z = middle[2] + chunk_offset[2] as f32;
-                        let world_z_ratio = world_z / CHUNK_SIZE as f32;
-                        let mix_ratio = util::create_mix_ratio(world::MIN_Z as f32, world::MAX_Z as f32, world_z_ratio);
+                        // let world_z_ratio = world_z / CHUNK_SIZE as f32;
+                        // let mix_ratio = util::create_mix_ratio(world::MIN_Z as f32, world::MAX_Z as f32, world_z_ratio);
 
-                        let hue = MIN_HUE + (MAX_HUE - MIN_HUE) * mix_ratio;
-                        let rgb_color = util::hsv_to_rgb(hue as f32, SATURATION, VALUE);
-                        let srgb_color = util::to_srgb(rgb_color);
+                        // let hue = MIN_HUE + (MAX_HUE - MIN_HUE) * mix_ratio;
+                        // let rgb_color = util::hsv_to_rgb(hue as f32, SATURATION, VALUE);
+                        // let srgb_color = util::to_srgb(rgb_color);
+
+                        let color_intensity = *tri_index as f32 / 16.0;
+                        let rgb_color = [0.7, color_intensity, color_intensity];
+                        let color = util::to_srgb_decimal(rgb_color);
 
                         let vert = draw::VertColor::new(
                             [
@@ -226,7 +230,8 @@ impl Chunk {
                                 middle[1] + chunk_offset[1] as f32,
                                 world_z,
                             ],
-                            srgb_color,
+                            // srgb_color,
+                            color,
                         );
 
                         let maybe_ind = self.build.vert_pairs.iter().position(|(a_, b_)| *a_ == corner_a && *b_ == corner_b);
