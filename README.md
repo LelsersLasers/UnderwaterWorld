@@ -23,9 +23,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - Do by z level?
     - With terracing effect?
     - Lower z -> darker?
-- Shader/lighting effects
-    - Lights?
-        - Angle between sub forward vec and dist vec
 - README.md write up
 - itch.io page
 
@@ -60,7 +57,7 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Terrain Generation/Perlin Noise
     - 3d multi-octave perlin noise
 - Shader/Lighting Effects
-    - Fog, darker/deeper, fish swim animation
+    - Fog, darker/deeper, fish swim animation, sub light
 
 ## Assets
 
