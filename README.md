@@ -8,6 +8,10 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
     - Wrapping
         - Try to stay within the view/generation view frustrums
             - Would be able to lower the number of boids and have the same effect
+- Terrain coloring
+    - Do by z level?
+    - With terracing effect?
+    - Lower z -> darker?
 - Preformance
     - What are actually the slow parts?
     - If have "extra preformance"
@@ -18,10 +22,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - More wall avoidence rays
             - Higher wall avoidance range
     - What parts go in vertex shader vs fragment shader?
-- Terrain coloring
-    - Do by z level?
-    - With terracing effect?
-    - Lower z -> darker?
 - README.md write up
 - itch.io page
 
