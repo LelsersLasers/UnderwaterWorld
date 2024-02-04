@@ -1,9 +1,13 @@
 use crate::{chunk, world};
-use cgmath::SquareMatrix;
+use cgmath::{EuclideanSpace, SquareMatrix};
 
 const Z_NEAR: f32 = 2.0;
 const Z_FAR: f32 = chunk::CHUNK_SIZE as f32 * (world::VIEW_DIST + 1) as f32;
 const FOVY: f32 = 45.0;
+
+const LIGHT_Z_NEAR: f32 = 0.001;
+const LIGHT_Z_FAR: f32 = 30.0;
+const LIGHT_FOVY: f32 = 33.0;
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
@@ -47,6 +51,7 @@ impl Camera {
     pub fn uniform(&self) -> &CameraUniform { &self.uniform }
     pub fn set_fog_color(&mut self, color: [f32; 3]) { self.uniform.fog_color = color; }
     pub fn set_sub_pos(&mut self, pos: [f32; 3]) { self.uniform.sub_pos = pos; }
+    pub fn set_sub_dir(&mut self, dir: [f32; 3]) { self.uniform.sub_dir = dir; }
 
     fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
         let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
@@ -73,6 +78,8 @@ pub struct CameraUniform {
     _padding1: f32,
     sub_pos: [f32; 3],
     _padding2: f32,
+    sub_dir: [f32; 3],
+    _padding3: f32,
 }
 impl CameraUniform {
     fn new() -> Self {
@@ -82,6 +89,8 @@ impl CameraUniform {
             _padding1: 0.0,
             sub_pos: [0.0, 0.0, 0.0],
             _padding2: 0.0,
+            sub_dir: [0.0, 0.0, 0.0],
+            _padding3: 0.0,
         }
     }
 }
