@@ -27,8 +27,7 @@ struct VertexOutput {
 fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
-    let pi = 3.14159;
-    let half_pi = pi / 2.0;
+    let half_pi = 3.14159 / 2.0;
 
     var out: VertexOutput;
     out.color = model.color;
