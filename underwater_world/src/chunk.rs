@@ -216,14 +216,9 @@ impl Chunk {
                         let world_z_ratio = world_z / CHUNK_SIZE as f32;
                         let mix_ratio = util::create_mix_ratio(world::MIN_Z as f32, world::MAX_Z as f32, world_z_ratio);
 
-                        // let saturation_intensity = (corner_a_idx % 4) as f32 / 20.0;
                         let value_intensity = (corner_b_idx % 3) as f32 / 9.0;
-
-                        let saturation_intensity = 0.0;
-                        // let value_intensity = (*tri_index % 3) as f32 / 9.0;
-
                         let hue = MIN_HUE + (MAX_HUE - MIN_HUE) * mix_ratio;
-                        let rgb_color = util::hsv_to_rgb(hue as f32, SATURATION + saturation_intensity, VALUE + value_intensity);
+                        let rgb_color = util::hsv_to_rgb(hue as f32, SATURATION, BASE_VALUE + value_intensity);
                         let srgb_color = util::to_srgb(rgb_color);
 
                         let vert = draw::VertColor::new(
