@@ -10,8 +10,8 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
             - Would be able to lower the number of boids and have the same effect
 - Terrain coloring
     - Do by z level?
-    - With terracing effect?
-    - Lower z -> darker?
+    - With terracing eff
+    - Try to smooth the edges of chunks
 - Preformance
     - What are actually the slow parts?
     - If have "extra preformance"
