@@ -27,6 +27,7 @@ const SUB_MODEL_SCALE: f32 = 2.5;
 const PERLIN_FACTOR: f32 = 2.0;
 
 const CAMERA_FOLLOW_SPEED: f32 = 10.0;
+const START_Y_OFFSET: f32 = 0.5 * chunk::CHUNK_SIZE as f32;
 const START_Z_OFFSET: f32 = 0.75 * chunk::CHUNK_SIZE as f32;
 
 const MAX_Z: f32 = chunk::CHUNK_SIZE as f32 * 2.0;
@@ -286,7 +287,7 @@ impl Sub {
         //--------------------------------------------------------------------//
 
 		Self {
-			pos: cgmath::Vector3::new(0.0, 0.0, START_Z_OFFSET),
+			pos: cgmath::Vector3::new(0.0, START_Y_OFFSET, START_Z_OFFSET),
 
             up: cgmath::Vector3::unit_z(),
             forward: cgmath::Vector3::unit_x(),
