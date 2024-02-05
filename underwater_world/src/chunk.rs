@@ -217,10 +217,12 @@ impl Chunk {
                         let mix_ratio = util::create_mix_ratio(world::MIN_Z as f32, world::MAX_Z as f32, world_z_ratio);
 
                         // let saturation_intensity = (*tri_index % 4) as f32 / 12.0;
-                        let value_intensity = (*tri_index % 3) as f32 / 9.0;
+                        // let value_intensity = (*tri_index % 3) as f32 / 9.0;
+                        let saturation_intensity = ((middle[1] + chunk_offset[1] as f32) % 4.0) / 12.0;
+                        let value_intensity = ((middle[0] + chunk_offset[0] as f32) % 4.0) / 12.0;
 
                         let hue = MIN_HUE + (MAX_HUE - MIN_HUE) * mix_ratio;
-                        let rgb_color = util::hsv_to_rgb(hue as f32, SATURATION, VALUE + value_intensity);
+                        let rgb_color = util::hsv_to_rgb(hue as f32, SATURATION + saturation_intensity, VALUE + value_intensity);
                         let srgb_color = util::to_srgb(rgb_color);
 
                         // let rgb_color = [0.7, color_intensity, color_intensity];
