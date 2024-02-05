@@ -14,7 +14,7 @@ pub const ADJ_Z_MOD: f32 = 0.25;
 pub const MIN_HUE: f32 = -150.0;
 pub const MAX_HUE: f32 = 60.0;
 pub const SATURATION: f32 = 0.6;
-pub const VALUE: f32 = 0.4;
+pub const BASE_VALUE: f32 = 0.4;
 
 const X_GENERATION_STEP_ISO: i32 = 13;
 const X_GENERATION_STEP_MESH: i32 = 4;
