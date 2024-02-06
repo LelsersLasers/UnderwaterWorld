@@ -15,30 +15,37 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 - Slow down: control
 - Reset submarine: R or enter
 
-## Notes
+## Features
 
-- todo!()
-- Performance
-    - Chunk generation
-        - Split across multiple frames
-        - Index buffers
-        - Downscaling
-        - Smart sorting
-        - Blank chunk (+ early generation check)
-        - View frustrum culling
-        - Chunk generation order
-    - Spatial paritioning
-- Marching Cubes
-- Fish
-    - 3d boids
-    - Wall avoidence
-        - 3d points on sphere
-        - Raycasting
-    - Wrapping system
-- Terrain Generation/Perlin Noise
-    - 3d multi-octave perlin noise
-- Shader/Lighting Effects
-    - Fog, darker/deeper, fish swim animation, sub light
+The main build target was WASM and WebGL, meaning I did not have access to any parallelism/threading or compute shaders.
+This made performance a key concern, especially with the generation of the world/chunks and the fish. 
+- Performance optimizations
+    - Chunks/World
+        - Each chunk is built one at a time and is split over multiple frames to keep the frame rate high
+        - To hide the chunk generation, the chunks to build are sorted:
+            1) If they are in the view frustum
+            2) If they are in the direction that the sub is facing
+            3) Distance to sub but with a little extra prio to chunks with a lower Z value (because they are more likely to be not blank)
+        - After collecting the perlin noise values for a chunk, if the chunk will be blank, it skips trying to create the mesh and it will skipped for rendering
+        - Built chunk models are stored and sent to the GPU in a more compact way using index buffers
+        - Despite the fact that chunks take up 16x16x16 voxels, they are built out of 12x12x12 voxels
+        - When trying to render the chunks, it will only sent chunks that in the view frustum to the GPU
+        - vertex order is designed for backface culling
+    - Boids
+        - Index buffer + backface culling for models
+        - Spatial partitioning used to find boids that are close to each other instead of iterating through all boids
+        - If boids get too far from a point, they are teleported to the opposite side
+            - The center point is a space in the direction the sub is facing, as there is no point in having the boids be far away from the sub or behind the sub
+- Other features
+    - Marching cubes with linear interpolation based on the isosurface values
+    - 3D multi-octave perlin noise to generate infinite terrain
+    - Boids
+        - Wall avoidance using raycasting
+    - Shader effects:
+        - Fog: further away objects fade into the sea
+        - Darker/deeper: the deeper you go, the darker the fog/water color gets
+        - The fish have a swimming animation that moves some of their vertices left and right using a sine wave
+        - The sub has a light that illuminates the direction it is facing
 
 ## Assets
 
