@@ -49,5 +49,25 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## Resources
 
-- todo!()
-- https://github.com/albertomelladoc/Fish-Animation/blob/master/FishAnimation.shader
+- https://sotrh.github.io/learn-wgpu/
+- Marching Cubes/World Generation
+    - https://www.youtube.com/watch?v=M3iI2l0ltbE
+    - https://paulbourke.net/geometry/polygonise/
+    - https://developer.nvidia.com/gpugems/gpugems3/part-i-geometry/chapter-1-generating-complex-procedural-terrains-using-gpu
+    - https://people.eecs.berkeley.edu/~jrs/meshpapers/LorensenCline.pdf
+    - https://www.youtube.com/watch?v=YyVAaJqYAfE
+    - https://www.youtube.com/watch?v=TZFv493D7jo
+    - https://www.youtube.com/watch?v=4O0_-1NaWny
+- Boids
+    - https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/44164075#44164075
+    - https://www.youtube.com/watch?v=bqtqltqcQhw
+    - https://natureofcode.com/book/chapter-6-autonomous-agents/
+    - https://www.red3d.com/cwr/boids/
+    - https://www.youtube.com/watch?v=gpc7u3331oQ
+    - https://eater.net/boids
+    - https://github.com/miorsoft/VB6-3D-Flocking-Boids
+    - https://github.com/albertomelladoc/Fish-Animation/blob/master/FishAnimation.shader
+- Techniques from old projects:
+    - https://lelserslasers.itch.io/boids
+    - https://lelserslasers.itch.io/3d-cellular-automata-wgpu-rust
+    - https://lelserslasers.itch.io/minecraft
