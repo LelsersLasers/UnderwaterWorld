@@ -2,10 +2,7 @@
 
 Infinite explorable underwater world created using Rust and WGPU using marching cubes and 3D perlin noise.
 
-## TODO
-
-- README.md write up
-- itch.io page
+![showcase](showcase.png)
 
 ## Controls
 
@@ -53,6 +50,7 @@ This made performance a key concern, especially with the generation of the world
 - Red fish: 3DRPolyFactory - https://www.cgtrader.com/free-3d-models/animals/fish/fish3d-v1
 - Green fish: 3DRPolyFactory - https://www.cgtrader.com/free-3d-models/animals/fish/fish-3d-6a34c6e0-dff2-4375-9257-469577d423cd
 - Blue fish: 3DRPolyFactory - https://www.cgtrader.com/free-3d-models/animals/fish/bluegill-886e1016-26b4-49c2-a594-799da26c1ce7
+- Favicon: Smashicons - https://www.flaticon.com/free-icon/submarine_2739364?term=submarine&page=1&position=22&origin=tag&related_id=2739364
 
 ## Resources
 
