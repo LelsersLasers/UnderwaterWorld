@@ -4,19 +4,6 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
-- Terrain coloring
-    - Try to smooth the edges of chunks
-    - Make one corner white?
-- Preformance
-    - What are actually the slow parts?
-    - If have "extra preformance"
-        - Bigger view distance (chunks + fog)
-        - Build chunks faster/slower?
-        - Boids
-            - More boids
-            - More wall avoidence rays
-            - Higher wall avoidance range
-    - What parts go in vertex shader vs fragment shader?
 - README.md write up
 - itch.io page
 
