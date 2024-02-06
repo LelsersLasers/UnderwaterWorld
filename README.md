@@ -4,14 +4,9 @@ Infinite explorable underwater world created using Rust and WGPU using marching 
 
 ## TODO
 
-- 3d fish/boids
-    - Wrapping
-        - Try to stay within the view/generation view frustrums
-            - Would be able to lower the number of boids and have the same effect
 - Terrain coloring
-    - Do by z level?
-    - With terracing eff
     - Try to smooth the edges of chunks
+    - Make one corner white?
 - Preformance
     - What are actually the slow parts?
     - If have "extra preformance"

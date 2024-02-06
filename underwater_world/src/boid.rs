@@ -24,10 +24,12 @@ const DOWN_STEER_MULT: f32 = -0.05;
 // Note: this is the number of boids per species
 const NUM_BOIDS: usize = 100;
 
-const WRAP_STRENGTH: f32 = 1.975;
+const WRAP_STRENGTH: f32 = 1.99;
 const ISO_PADDING: f32 = 0.075;
 const NEW_Z_STEP: f32 = 2.0;
-const POS_RANGE_XY: f32 = 46.0;
+
+const POS_RANGE_XY: f32 = 30.0;
+const CENTER_OFFSET_XY: f32 = 20.0;
 const POS_RANGE_Z: f32 = 12.0;
 
 const SPAT_PART_SIZE: f32 = PERCEPTION_RADIUS;
@@ -110,11 +112,18 @@ impl Boid {
             accel += sub_force;
         }
 
-        let sub_offset_xy = sub_offset.truncate();
-        let sub_distance_xy = sub_offset_xy.magnitude();
-        if sub_distance_xy > POS_RANGE_XY {
-            let new_x = sub_offset_xy.x * WRAP_STRENGTH + self.pos.x;
-            let new_y = sub_offset_xy.y * WRAP_STRENGTH + self.pos.y;
+        let sub_vel = sub.bearing();
+        let sub_vel_xy = sub_vel.truncate().extend(0.0);
+        let sub_pos_xy = sub_pos.truncate().extend(0.0);
+        let center_xy = sub_pos_xy + util::safe_normalize_to(sub_vel_xy, CENTER_OFFSET_XY);
+        let pos_xy = self.pos.truncate().extend(0.0);
+
+        let center_offset_xy = center_xy - pos_xy;
+        let center_dist_xy = center_offset_xy.magnitude();
+
+        if center_dist_xy > POS_RANGE_XY {
+            let new_x = center_offset_xy.x * WRAP_STRENGTH + self.pos.x;
+            let new_y = center_offset_xy.y * WRAP_STRENGTH + self.pos.y;
 
             let mut new_z = self.pos.z;
             let mut new_z_in_wall = true;
