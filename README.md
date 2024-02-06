@@ -2,7 +2,8 @@
 
 Infinite explorable underwater world created using Rust and WGPU using marching cubes and 3D perlin noise.
 
-![showcase](showcase.png)
+![showcase2](showcase2.png)
+
 
 ## Controls
 
@@ -43,6 +44,8 @@ This made performance a key concern, especially with the generation of the world
         - Darker/deeper: the deeper you go, the darker the fog/water color gets
         - The fish have a swimming animation that moves some of their vertices left and right using a sine wave
         - The sub has a light that illuminates the direction it is facing
+
+![showcase](showcase.png)
 
 ## Assets
 
