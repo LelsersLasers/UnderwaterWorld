@@ -19,7 +19,8 @@ const RAY_DIRECTION_COUNT: usize = 16;
 
 const MAX_STEER_FORCE: f32 = 4.0;
 
-const DOWN_STEER_MULT: f32 = -0.05;
+const DOWN_STEER_MID_Z: f32 = -5.0;
+const DOWN_STEER_MULT: f32 = 0.1;
 
 // Note: this is the number of boids per species
 const NUM_BOIDS: usize = 100;
@@ -106,8 +107,8 @@ impl Boid {
 
         let sub_pos = sub.pos();
 
-        let sub_offset = sub_pos - self.pos;
-        if sub_offset.z < -POS_RANGE_Z {
+        let sub_offset_z = self.pos.z - sub_pos.z;
+        if sub_offset_z < -POS_RANGE_Z {
             let sub_force = self.steer_towards(-cgmath::Vector3::unit_z());
             accel += sub_force;
         }
@@ -166,8 +167,10 @@ impl Boid {
         let wrap_force = self.wrap(sub, perlin);
         accel += wrap_force;
 
-        let down_force = self.steer_towards(cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
-        accel += down_force;
+        if self.pos.z > DOWN_STEER_MID_Z {
+            let down_force = self.steer_towards(-cgmath::Vector3::unit_z()) * DOWN_STEER_MULT;
+            accel += down_force;
+        }
 
         let mut all_tris = Vec::new();
 
