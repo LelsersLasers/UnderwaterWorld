@@ -1,9 +1,10 @@
 # Underwater World
 
 Infinite explorable underwater world created using Rust and WGPU using marching cubes and 3D perlin noise.
+- Running live on the web at: https://lelserslasers.itch.io/underwater-world
+- Showcase video: https://www.youtube.com/watch?v=heCIgXLkNO0
 
-![showcase2](showcase2.png)
-
+![showcase1](showcase.png)
 
 ## Controls
 
@@ -45,7 +46,7 @@ This made performance a key concern, especially with the generation of the world
         - The fish have a swimming animation that moves some of their vertices left and right using a sine wave
         - The sub has a light that illuminates the direction it is facing
 
-![showcase](showcase.png)
+![showcase2](showcase2.png)
 
 ## Assets
 
