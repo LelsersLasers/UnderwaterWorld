@@ -66,7 +66,7 @@ This made performance a key concern, especially with the generation of the world
     - https://people.eecs.berkeley.edu/~jrs/meshpapers/LorensenCline.pdf
     - https://www.youtube.com/watch?v=YyVAaJqYAfE
     - https://www.youtube.com/watch?v=TZFv493D7jo
-    - https://www.youtube.com/watch?v=4O0_-1NaWny
+    - https://www.youtube.com/watch?v=4O0_-1NaWnY
     - https://www.youtube.com/playlist?list=PLFt_AvWsXl0eBW2EiBtl_sxmDtSgZBxB3
 - Boids
     - https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/44164075#44164075
