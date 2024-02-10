@@ -1,6 +1,6 @@
 # Underwater World
 
-Infinite explorable underwater world created using Rust and WGPU using marching cubes and 3D perlin noise.
+Infinite explorable underwater world created using Rust and WGPU using marching cubes and 3D perlin noise populated with 3D boids.
 - Running live on the web at: https://lelserslasers.itch.io/underwater-world
 - Showcase video: https://www.youtube.com/watch?v=heCIgXLkNO0
 
